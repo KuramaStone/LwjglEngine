@@ -8,7 +8,6 @@ public abstract class RendererAbstract extends Manager {
 	public RendererAbstract(GameEngine engine) {
 		super(engine);
 	}
-	public abstract void prepare();
 	public abstract void cleanUp();
 
 }

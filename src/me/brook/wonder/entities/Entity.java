@@ -1,19 +1,22 @@
 package me.brook.wonder.entities;
 
+import me.brook.wonder.GameEngine;
 import me.brook.wonder.models.TexturedModel;
 
 public class Entity {
+
+	protected final GameEngine engine;
 
 	private TexturedModel model;
 	protected Location location;
 	protected float scale;
 
-	public Entity(TexturedModel model, Location location) {
-		this(model, location, 1.0f);
+	public Entity(GameEngine engine, TexturedModel model, Location location) {
+		this(engine, model, location, 1.0f);
 	}
 
-	public Entity(TexturedModel model, Location location, float scale) {
-		super();
+	public Entity(GameEngine engine, TexturedModel model, Location location, float scale) {
+		this.engine = engine;
 		this.model = model;
 		this.location = location;
 		this.scale = scale;

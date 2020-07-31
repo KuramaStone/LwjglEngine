@@ -4,14 +4,18 @@ import org.lwjgl.LWJGLException;
 
 import me.brook.wonder.managers.DisplayManager;
 import me.brook.wonder.managers.EntityManager;
+import me.brook.wonder.managers.LightManager;
 import me.brook.wonder.managers.Manager;
 import me.brook.wonder.managers.RenderManager;
+import me.brook.wonder.managers.TerrainManager;
 
 public class Managers extends Manager {
 
 	private DisplayManager display;
 	private RenderManager renderer;
 	private EntityManager entity;
+	private TerrainManager terrain;
+	private LightManager lightManager;
 
 	public Managers(GameEngine engine) {
 		super(engine);
@@ -21,9 +25,14 @@ public class Managers extends Manager {
 		display = new DisplayManager(engine);
 		try {
 			display.createDisplay();
-		} catch (LWJGLException e) {
+		}
+		catch(LWJGLException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public void createTerrainManager() {
+		terrain = new TerrainManager(engine);
 	}
 
 	public void createEntityManager() {
@@ -32,6 +41,10 @@ public class Managers extends Manager {
 
 	public void createRendererManager() {
 		renderer = new RenderManager(engine);
+	}
+
+	public void createLightManager() {
+		lightManager = new LightManager(engine);
 	}
 
 	public DisplayManager getDisplayManager() {
@@ -45,11 +58,21 @@ public class Managers extends Manager {
 	public EntityManager getEntityManager() {
 		return entity;
 	}
+	
+	public TerrainManager getTerrainManager() {
+		return terrain;
+	}
+	
+	public LightManager getLightManager() {
+		return lightManager;
+	}
 
 	public void update() {
 		entity.update();
-		renderer.renderEntities();
-		
+		terrain.update();
+		lightManager.update();
+		renderer.render();
+
 		display.update();
 	}
 

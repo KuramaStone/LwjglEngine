@@ -60,7 +60,7 @@ public class Loader {
 				if(line.trim().isEmpty()) {
 					continue;
 				}
-				
+
 				String[] currentLine = line.split(" ");
 				if(line.startsWith("v ")) {
 					Vector3f vertex = new Vector3f(Float.parseFloat(currentLine[1]),
@@ -122,7 +122,7 @@ public class Loader {
 
 		// return loader.loadToVAO(verticesArray, textureArray, normalsArray,
 		// indicesArray);
-		return this.loadToVAO(verticesArray, textureArray, indicesArray);
+		return this.loadToVAO(verticesArray, textureArray, normalsArray, indicesArray);
 
 	}
 
@@ -131,9 +131,11 @@ public class Loader {
 			float[] normalsArray) {
 		int currentVertexPointer = Integer.parseInt(vertexData[0]) - 1;
 		indices.add(currentVertexPointer);
+
 		Vector2f currentTex = textures.get(Integer.parseInt(vertexData[1]) - 1);
 		textureArray[currentVertexPointer * 2] = currentTex.x;
 		textureArray[currentVertexPointer * 2 + 1] = 1 - currentTex.y;
+
 		Vector3f currentNorm = normals.get(Integer.parseInt(vertexData[2]) - 1);
 		normalsArray[currentVertexPointer * 3] = currentNorm.x;
 		normalsArray[currentVertexPointer * 3 + 1] = currentNorm.y;
@@ -159,10 +161,11 @@ public class Loader {
 		textures.forEach(id -> GL11.glDeleteTextures(id));
 	}
 
-	public RawModel loadToVAO(float[] positions, float[] textureCoords, int[] indices) {
+	public RawModel loadToVAO(float[] positions, float[] textureCoords, float[] normals, int[] indices) {
 		int vaoID = createVAO();
 		storeDataInAttributeList(0, positions, 3);
 		storeDataInAttributeList(1, textureCoords, 2);
+		storeDataInAttributeList(2, normals, 3);
 		bindIndicesBuffer(indices);
 		unbindVAO();
 

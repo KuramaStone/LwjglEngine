@@ -6,8 +6,10 @@ import org.lwjgl.util.vector.Matrix4f;
 public class Camera {
 	
 	private float FOV = 70;
-	private float NEAR_PLANE = 0.1f;
+	private float NEAR_PLANE = 0.01f;
 	private float FAR_PLANE = 1000f;
+	
+	private int chunkRange = 1;
 	
 	private Matrix4f projectionMatrix;
 	
@@ -34,6 +36,10 @@ public class Camera {
 	
 	public Matrix4f getProjectionMatrix() {
 		return projectionMatrix;
+	}
+
+	public int getChunkRange() {
+		return chunkRange;
 	}
 
 }

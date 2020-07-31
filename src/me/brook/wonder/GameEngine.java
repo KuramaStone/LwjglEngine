@@ -6,7 +6,7 @@ import me.brook.wonder.entities.Location;
 import me.brook.wonder.entities.player.Player;
 import me.brook.wonder.renderer.Loader;
 
-public class GameEngine {
+public class GameEngine implements Runnable {
 
 	// Essentials
 	private Managers managers;
@@ -14,18 +14,17 @@ public class GameEngine {
 
 	// Player
 	private Player player;
-	
+
 	// Misc
 	private boolean running = true;
 
 	public GameEngine() {
 		managers = new Managers(this);
 		loader = new Loader();
-
 	}
 
 	private void update() {
-		if (Display.isCloseRequested()) {
+		if(Display.isCloseRequested()) {
 			running = false;
 		}
 		player.update();
@@ -34,11 +33,13 @@ public class GameEngine {
 
 	public void enable() {
 		managers.createDisplayManager();
-		player = new Player(null, new Location(0, 0, 0));
+		player = new Player(this, null, new Location(0, 64f, 0, 0, 0, 0));
 
 		running = true;
 		managers.createRendererManager();
+		managers.createTerrainManager();
 		managers.createEntityManager();
+		managers.createLightManager();
 
 	}
 
@@ -51,7 +52,7 @@ public class GameEngine {
 
 		enable();
 
-		while (running) {
+		while(running) {
 			update();
 		}
 
@@ -59,19 +60,27 @@ public class GameEngine {
 	}
 
 	public static void main(String[] args) {
-		new GameEngine().run();
+		new Thread(new GameEngine()).run(); 
 	}
 
 	public Loader getLoader() {
 		return loader;
 	}
-	
+
 	public Managers getManagers() {
 		return managers;
 	}
-	
+
 	public Player getPlayer() {
 		return player;
+	}
+
+	public boolean isRunning() {
+		return running;
+	}
+
+	public void setRunning(boolean running) {
+		this.running = running;
 	}
 
 }
