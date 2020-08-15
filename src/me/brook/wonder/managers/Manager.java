@@ -9,5 +9,9 @@ public abstract class Manager {
 	public Manager(GameEngine engine) {
 		this.engine = engine;
 	}
+	
+	public void cleanUp() {
+		
+	}
 
 }

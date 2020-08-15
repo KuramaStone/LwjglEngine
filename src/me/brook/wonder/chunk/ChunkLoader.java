@@ -16,68 +16,84 @@ public class ChunkLoader {
 	// Information
 	public List<Point> loadingThreadList;
 	private boolean addingPointsToThread = false;
+	private Thread thread;
+	private boolean isThreadRunning = true;
 
-	private long lastChunkLoad;
+	private int extendedTrimmingRange = 2;
+	private int chunksPerSecond = 12;
 
 	public ChunkLoader(GameEngine engine, TerrainManager manager) {
 		this.engine = engine;
 		this.manager = manager;
 
 		loadingThreadList = new ArrayList<>();
+		startThread();
 	}
 
-	// Slowly load the chunks. 1 per second or so.
-	private void loadFromThreadList() {
+	private long lastChunkLoad;
 
-		if(!loadingThreadList.isEmpty() && lastChunkLoad < System.currentTimeMillis() + (1000 / 2)) {
-			Point p = loadingThreadList.get(0);
+	private void startThread() {
+		thread = new Thread(new Runnable() {
 
-			// If the point has turned null
-			if(p == null) {
-				loadingThreadList.remove(0);
-			}
-			// If the point is outside the bounds
-			else if(isChunkOOBs(p.x, p.y)) {
-				loadingThreadList.remove(0);
-			}
-			else {
-				if(loadChunk(p.x, p.y)) {
-					loadingThreadList.remove(0);
+			@Override
+			public void run() {
+				while(isThreadRunning) {
+					try {
+
+						List<Point> list = new ArrayList<Point>(loadingThreadList);
+						if(!list.isEmpty() && lastChunkLoad + (1000 / chunksPerSecond) < System.currentTimeMillis()) {
+							Point p = list.get(0);
+
+							// If the point has turned null
+							if(p == null) {
+								loadingThreadList.remove(p);
+							}
+							// If the point is outside the bounds
+							else if(isChunkOOBs(p.x, p.y)) {
+								loadingThreadList.remove(p);
+							}
+							else {
+								if(loadChunk(p.x, p.y)) {
+									loadingThreadList.remove(p);
+								}
+
+							}
+
+							lastChunkLoad = System.currentTimeMillis();
+
+						}
+					}
+					catch(Exception e) {
+						e.printStackTrace();
+					}
 				}
 			}
-
-			lastChunkLoad = System.currentTimeMillis();
-		}
+		});
+		thread.start();
 	}
 
 	boolean boo = false;
 
 	public void update() {
-		// if(boo) {
-		// return;
-		// }
-		// loadChunk(0, 0);
-		// loadChunk(0, 1);
-		// boo = true;
-		// if(boo) {
-		// return;
-		// }
-		loadFromThreadList();
 		// load chunks in the direction the player is facing first.
 		int direction = getDirection();
+		if(manager.getLoadedChunks().size() == 0) {
+			direction = -1;
+		}
 
 		// unload chunks not in range
 		trimChunks();
+
 		// If the current number of chunks isn't at a max AND others aren't loading,
 		// then load more.
-		if(shouldRefresh()) {
+		if(!areMaximumChunksLoaded()) {
 			loadChunksAt(engine.getPlayer().getLocation().getChunkX(),
 					engine.getPlayer().getLocation().getChunkZ(),
 					direction);
 		}
 
 		if(!manager.getScheduledAdditions().isEmpty()) {
-			manager.getScheduledAdditions().forEach(c -> manager.load(c));
+			new ArrayList<>(manager.getScheduledAdditions().values()).forEach(c -> manager.load(c));
 			manager.getScheduledAdditions().clear();
 		}
 	}
@@ -105,7 +121,7 @@ public class ChunkLoader {
 		addingPointsToThread = true;
 
 		// Remove loadingPoints that are now outside the bounds
-		loadingThreadList.clear();
+		removeOOBChunksFromThread();
 
 		// Add chunks to load to the list in a spiral pattern from the center.
 		int total = (int) Math.pow(engine.getPlayer().getCamera().getChunkRange() * 2 + 1, 2);
@@ -136,7 +152,9 @@ public class ChunkLoader {
 					+ 1; y1++) {
 				for(int x1 = -engine.getPlayer().getCamera().getChunkRange(); x1 < engine.getPlayer().getCamera()
 						.getChunkRange() + 1; x1++) {
-					addChunkToThread(x1 + centerX, y1 + centerY);
+					if(isChunkLoaded(x1 + centerX, y1 + centerY) == null) {
+						addChunkToThread(x1 + centerX, y1 + centerY);
+					}
 				}
 			}
 		}
@@ -171,9 +189,25 @@ public class ChunkLoader {
 		addingPointsToThread = false;
 	}
 
+	private void removeOOBChunksFromThread() {
+
+		for(int i = 0; i < loadingThreadList.size(); i++) {
+			Point p = loadingThreadList.get(i);
+
+			if(p != null) {
+				if(isChunkOOBs(p.x, p.y)) {
+					loadingThreadList.remove(p);
+					i--;
+				}
+			}
+
+		}
+
+	}
+
 	private void addChunkToThread(int x, int y) {
 
-		if(isChunkLoaded(x, y) == null) {
+		if(!manager.isChunkGenerated(new Coords(x, y))) {
 			Point point = new Point(x, y);
 			if(!loadingThreadList.contains(point)) {
 				loadingThreadList.add(point);
@@ -181,17 +215,18 @@ public class ChunkLoader {
 		}
 	}
 
-	private boolean isChunkOOBs(int x, int z) {
+	public boolean isChunkOOBs(int x, int z) {
 		int minX = engine.getPlayer().getLocation().getChunkX() - engine.getPlayer().getCamera().getChunkRange();
 		int maxX = engine.getPlayer().getLocation().getChunkX() + engine.getPlayer().getCamera().getChunkRange();
 
 		int minZ = engine.getPlayer().getLocation().getChunkZ() - engine.getPlayer().getCamera().getChunkRange();
 		int maxZ = engine.getPlayer().getLocation().getChunkZ() + engine.getPlayer().getCamera().getChunkRange();
+		// return false;
 		return x < minX || x > maxX ||
 				z < minZ || z > maxZ;
 	}
 
-	private boolean isChunkOOBs(Chunk chunk) {
+	public boolean isChunkOOBs(Chunk chunk) {
 		return isChunkOOBs(chunk.getChunkX(), chunk.getChunkZ());
 	}
 
@@ -202,25 +237,20 @@ public class ChunkLoader {
 
 	private boolean loadChunk(int chunkX, int chunkY) {
 
-		// Try to get chunk from unloaded list
-		Chunk chunk = isChunkUnloaded(chunkX, chunkY);
-
-		// If not found, then try to load from file.
-		// if(chunk == null) {
-		// if(hasChunkBeenSaved(chunkX, chunkY)) {
-		// String id = getChunkName(chunkX, chunkY);
-		// Image image = Map.loadMap(id, fileChunks);
-		//
-		// chunk = new Chunk(biomes, chunkX, chunkY, manager.getSeed(), image);
-		// }
-		// }
-
-		if(chunk == null) {
-			chunk = new Chunk(engine, chunkX, chunkY, manager.getSeed());
+		if(manager.isChunkGenerated(new Coords(chunkX, chunkY))) {
+			return false;
 		}
 
 		if(!addingPointsToThread) {
-			chunk.generateModel();
+			// Try to get chunk from unloaded list
+			Chunk chunk = isChunkUnloaded(chunkX, chunkY);
+
+			if(chunk == null) {
+				chunk = new Chunk(engine, manager.getHeightGen(), chunkX, chunkY);
+			}
+			if(chunk.getEmptyModel() == null) {
+				chunk.generateModel();
+			}
 			manager.scheduleChunkToAdd(chunk);
 			// if(Info.SAVE && !hasChunkBeenSaved(chunk.getChunkX(), chunk.getChunkZ())) {
 			// saveChunk(chunk);
@@ -230,6 +260,7 @@ public class ChunkLoader {
 
 		return false;
 	}
+
 	//
 	// private boolean hasChunkBeenSaved(int chunkX, int chunkY) {
 	// String id = getChunkName(chunkX, chunkY);
@@ -270,19 +301,56 @@ public class ChunkLoader {
 		return null;
 	}
 
-	public boolean shouldRefresh() {
+	public boolean areMaximumChunksLoaded() {
 		int needed = (int) (manager.getLoadedChunks().size()
-				- Math.pow(engine.getPlayer().getCamera().getChunkRange() * 2 + 1, 2));
-		return needed != 0
-				&& this.loadingThreadList.size() == 0;
+				- Math.pow((engine.getPlayer().getCamera().getChunkRange() + extendedTrimmingRange) * 2 + 1, 2));
+		return needed == 0;
 	}
 
 	public void trimChunks() {
 		// Unload chunks not within range of this point
 		for(Chunk chunk : new ArrayList<>(manager.getLoadedChunks().values())) {
-			if(isChunkOOBs(chunk)) {
+			if(isChunkOOBsForTrimming(chunk)) {
 				unloadChunk(chunk);
 			}
+		}
+	}
+
+	private boolean isChunkOOBsForTrimming(int x, int z) {
+		int minX = engine.getPlayer().getLocation().getChunkX() - engine.getPlayer().getCamera().getChunkRange()
+				- extendedTrimmingRange;
+		int maxX = engine.getPlayer().getLocation().getChunkX() + engine.getPlayer().getCamera().getChunkRange()
+				+ extendedTrimmingRange;
+
+		int minZ = engine.getPlayer().getLocation().getChunkZ() - engine.getPlayer().getCamera().getChunkRange()
+				- extendedTrimmingRange;
+		int maxZ = engine.getPlayer().getLocation().getChunkZ() + engine.getPlayer().getCamera().getChunkRange()
+				+ extendedTrimmingRange;
+		// return false;
+		return x < minX || x > maxX ||
+				z < minZ || z > maxZ;
+	}
+
+	private boolean isChunkOOBsForTrimming(Chunk chunk) {
+		return isChunkOOBsForTrimming(chunk.getChunkX(), chunk.getChunkZ());
+	}
+
+	public boolean isThreadRunning() {
+		return isThreadRunning;
+	}
+
+	@SuppressWarnings("deprecation")
+	public void setThreadRunning(boolean isThreadRunning) {
+		this.isThreadRunning = isThreadRunning;
+
+		if(!isThreadRunning) {
+			thread.stop();
+		}
+		else {
+			if(thread != null && thread.isAlive()) {
+				thread.stop();
+			}
+			startThread();
 		}
 	}
 

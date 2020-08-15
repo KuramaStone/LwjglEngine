@@ -84,7 +84,7 @@ public class Location {
 
 	@Override
 	public String toString() {
-		return String.format("%s, %s, %s : %s,%s,%s", position.getX(), position.getY(), position.getZ(), rotation.getX(),
+		return String.format("%sf, %sf, %sf, %sf, %sf, %sf", position.getX(), position.getY(), position.getZ(), rotation.getX(),
 				rotation.getY(), rotation.getZ());
 	}
 

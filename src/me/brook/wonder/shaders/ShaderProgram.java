@@ -1,14 +1,16 @@
 package me.brook.wonder.shaders;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.FloatBuffer;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
 public abstract class ShaderProgram {
@@ -22,8 +24,8 @@ public abstract class ShaderProgram {
 
 	public ShaderProgram(String name) {
 		this.name = name;
-		String vertexFile = "src/me/brook/wonder/shaders/glsl/%n/%nVertex.glsl".replace("%n", name);
-		String fragmentFile = "src/me/brook/wonder/shaders/glsl/%n/%nFragment.glsl".replace("%n", name);
+		String vertexFile = "/me/brook/wonder/shaders/glsl/%n/%nVertex.glsl".replace("%n", name);
+		String fragmentFile = "/me/brook/wonder/shaders/glsl/%n/%nFragment.glsl".replace("%n", name);
 
 		vertexShaderID = loadShader(vertexFile, GL20.GL_VERTEX_SHADER, name + " vertex");
 		fragmentShaderID = loadShader(fragmentFile, GL20.GL_FRAGMENT_SHADER, name + " fragment");
@@ -52,7 +54,6 @@ public abstract class ShaderProgram {
 	}
 
 	public void cleanUp() {
-
 		stop();
 		GL20.glDetachShader(programID, vertexShaderID);
 		GL20.glDetachShader(programID, fragmentShaderID);
@@ -62,7 +63,6 @@ public abstract class ShaderProgram {
 	}
 
 	protected void bindAttribute(int attribute, String variableName) {
-
 		GL20.glBindAttribLocation(programID, attribute, variableName);
 	}
 
@@ -80,11 +80,15 @@ public abstract class ShaderProgram {
 		GL20.glUniform3f(location, vector.x, vector.y, vector.z);
 	}
 
+	protected void loadVector(int location, Vector2f vector) {
+		GL20.glUniform2f(location, vector.x, vector.y);
+	}
+
 	protected void loadBoolean(int location, boolean value) {
-		float toLoad = 0;
+		float toLoad = 0f;
 
 		if(value) {
-			toLoad = 1;
+			toLoad = 1f;
 		}
 		GL20.glUniform1f(location, toLoad);
 	}
@@ -100,7 +104,8 @@ public abstract class ShaderProgram {
 		StringBuilder shaderSource = new StringBuilder();
 
 		try {
-			BufferedReader reader = new BufferedReader(new FileReader(file));
+			InputStream in = Class.class.getResourceAsStream(file);
+			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 
 			String line;
 

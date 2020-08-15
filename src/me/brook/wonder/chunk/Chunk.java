@@ -1,83 +1,101 @@
 package me.brook.wonder.chunk;
 
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.File;
+
+import javax.imageio.ImageIO;
+
 import org.lwjgl.util.vector.Vector3f;
 
 import me.brook.wonder.GameEngine;
-import me.brook.wonder.chunk.heightmap.PerlinNoise;
+import me.brook.wonder.chunk.procedural.NoiseGenerator;
 import me.brook.wonder.entities.Location;
+import me.brook.wonder.models.EmptyModel;
 import me.brook.wonder.models.ModelTexture;
 import me.brook.wonder.models.RawModel;
 
 public class Chunk {
 
-	public static float SIZE = 8;
-	private static final int VERTEX_COUNT = (int) (SIZE * 1);
+	public static float SIZE = 100;
+	private static final float DETAIL = 1f;
+	private static final int VERTEX_COUNT = (int) (SIZE * DETAIL);
 
 	private final GameEngine engine;
 
-	private Location location;
 	private RawModel model;
 	private ModelTexture texture;
-	private boolean showHeightMap = false;
+	private EmptyModel emptyModel;
 
-	private PerlinNoise heightGen;
-	private long seed;
+	private boolean showHeightMap = true;
+	private NoiseGenerator heightGen;
+
+	private Location location;
 	private Coords coords;
 
-	public Chunk(GameEngine engine, int x, int z, long seed) {
+	public Chunk(GameEngine engine, NoiseGenerator heightGen, int x, int z) {
 		this.engine = engine;
-		location = new Location(x * SIZE, 0, z * SIZE);
-		
+		this.heightGen = heightGen;
+
+		location = new Location(x * SIZE, 0, z * SIZE, 0, 0, 0);
+
 		coords = new Coords((int) (location.getX() / SIZE), (int) (location.getZ() / SIZE));
-		this.seed = seed;
 	}
 
-	public RawModel generateModel() {
-		int count = VERTEX_COUNT * VERTEX_COUNT;
-		heightGen = new PerlinNoise(8, 0.5f, seed);
+	private static BufferedImage image = new BufferedImage(100 * 5 + 1, 100 * 5 + 1, BufferedImage.TYPE_INT_RGB);
 
-		float[] vertices = new float[count * 3];
-		float[] normals = new float[count * 3];
-		float[] textureCoords = new float[count * 2];
-		int[] indices = new int[6 * (VERTEX_COUNT - 1) * (VERTEX_COUNT * 1)];
+	public EmptyModel generateModel() {
+		int vertexes = VERTEX_COUNT + 1;
 
-//		System.out.println();
-//		System.out.println("loc: " + location.getX());
+		int squared = vertexes * vertexes;
+
+		float[] vertices = new float[squared * 3];
+		float[] normals = new float[squared * 3];
+		float[] textureCoords = new float[squared * 2];
+		int[] indices = new int[6 * (vertexes - 1) * (vertexes * 1)];
+
 		int vertexPointer = 0;
-		for(int i = 0; i < VERTEX_COUNT; i++) {
-			for(int j = 0; j < VERTEX_COUNT; j++) {
-				int x = (int) (location.getX() + i);
-				int z = (int) (location.getZ() + j);
+		for(int i = 0; i < vertexes; i++) {
+			for(int j = 0; j < vertexes; j++) {
+				float vx = (float) i / (vertexes - 1) * SIZE;
+				float vz = (float) j / (vertexes - 1) * SIZE;
 
-				float height = heightGen.generateHeight(x, z);
-				if(coords.getZ() == 0) {
-					if(j == 0) {
-//						System.out.println(x + ": " + x);
-					}
-				}
+				float x = location.getZ() + vx;
+				float z = location.getX() + vz;
+				float height = calculateHeight(x, z);
 
+				float f = getHeightAt(x, z);
+				image.setRGB((int) x + 200, (int) z + 200, new Color(f, f, f).getRGB());
 
-				vertices[vertexPointer * 3] = -(float) j / ((float) VERTEX_COUNT - 1) * SIZE;
-				vertices[vertexPointer * 3 + 1] = location.getY() + height;
-				vertices[vertexPointer * 3 + 2] = -(float) i / ((float) VERTEX_COUNT - 1) * SIZE;
+				// create vertex position; 3d coords for 1 corner of triangle
+				vertices[vertexPointer * 3 + 0] = vz;
+				vertices[vertexPointer * 3 + 1] = height;
+				vertices[vertexPointer * 3 + 2] = vx;
 
 				Vector3f normal = calculateNormal(x, z);
-				normals[vertexPointer * 3] = normal.x;
+				normals[vertexPointer * 3 + 0] = normal.z;
 				normals[vertexPointer * 3 + 1] = normal.y;
-				normals[vertexPointer * 3 + 2] = normal.z;
+				normals[vertexPointer * 3 + 2] = normal.x;
 
-				textureCoords[vertexPointer * 2] = (float) j / ((float) VERTEX_COUNT - 1);
-				textureCoords[vertexPointer * 2 + 1] = (float) i / ((float) VERTEX_COUNT - 1);
+				textureCoords[vertexPointer * 2] = vx;
+				textureCoords[vertexPointer * 2 + 1] = vz;
 				vertexPointer++;
 			}
 		}
 
+		try {
+			ImageIO.write(image, "png", new File("res\\chunks\\rendered.png"));
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+
 		int pointer = 0;
-		for(int gz = 0; gz < VERTEX_COUNT - 1; gz++) {
-			for(int gx = 0; gx < VERTEX_COUNT - 1; gx++) {
-				int topLeft = (gz * VERTEX_COUNT) + gx;
+		for(int gz = 0; gz < vertexes - 1; gz++) {
+			for(int gx = 0; gx < vertexes - 1; gx++) {
+				int topLeft = (gz * vertexes) + gx;
 				int topRight = topLeft + 1;
-				int bottomLeft = ((gz + 1) * VERTEX_COUNT) + gx;
+				int bottomLeft = ((gz + 1) * vertexes) + gx;
 				int bottomRight = bottomLeft + 1;
 				indices[pointer++] = topLeft;
 				indices[pointer++] = bottomLeft;
@@ -88,33 +106,41 @@ public class Chunk {
 			}
 		}
 
-		model = engine.getLoader().loadToVAO(vertices, textureCoords, normals, indices);
-		return model;
+		return emptyModel = new EmptyModel(vertices, normals, textureCoords, indices);
+	}
+
+	public RawModel loadToVao() {
+
+		return model = engine.getLoader().loadToVAO(emptyModel.getVertices(), emptyModel.getTextureCoords(),
+				emptyModel.getNormals(), emptyModel.getIndices());
+	}
+
+	public float calculateHeight(float x, float z) {
+		return getHeightAt(x, z) * 32;
+	}
+
+	public float getHeightAt(float x, float z) {
+		// Biome[] b = engine.getManagers().getBiomeManager().getBiomeAt(x, z);
+		//
+		// return engine.getManagers().getBiomeManager().getAverageHeightOfBiomes(b);
+		return heightGen.getHeightAt(x, z);
 	}
 
 	private Vector3f calculateNormal(float x, float z) {
-		float heightL = heightGen.generateHeight(x - 1, z);
-		float heightR = heightGen.generateHeight(x + 1, z);
-		float heightD = heightGen.generateHeight(x, z - 1);
-		float heightU = heightGen.generateHeight(x, z + 1);
+		Vector3f a = new Vector3f(0, calculateHeight(x, z), 0);
+		Vector3f b = new Vector3f(0, calculateHeight(x, z + 1), 1);
+		Vector3f c = new Vector3f(1, calculateHeight(x + 1, z), 0);
 
-		Vector3f normal = new Vector3f(heightL - heightR, 2f, heightD - heightU);
-		normal.normalise();
-		return normal;
-		// Vector3f a = new Vector3f(0, heightGen.generateHeight(x, z), 0);
-		// Vector3f b = new Vector3f(0, heightGen.generateHeight(x, z + 1), 1);
-		// Vector3f c = new Vector3f(1, heightGen.generateHeight(x + 1, z), 0);
-		//
-		// Vector3f e1 = new Vector3f();
-		// Vector3f e2 = new Vector3f();
-		// Vector3f.sub(b, a, e1);
-		// Vector3f.sub(c, a, e2);
-		//
-		// Vector3f no = new Vector3f();
-		// Vector3f.cross(e1, e2, no);
-		//
-		// no.normalise();
-		// return no;
+		Vector3f e1 = new Vector3f();
+		Vector3f e2 = new Vector3f();
+		Vector3f.sub(b, a, e1);
+		Vector3f.sub(c, a, e2);
+
+		Vector3f no = new Vector3f();
+		Vector3f.cross(e1, e2, no);
+
+		no.normalise();
+		return no;
 
 	}
 
@@ -130,8 +156,12 @@ public class Chunk {
 		return location.clone();
 	}
 
-	public RawModel getModel() {
+	public RawModel getRawModel() {
 		return model;
+	}
+
+	public EmptyModel getEmptyModel() {
+		return emptyModel;
 	}
 
 	public void loadTexture() {
@@ -148,7 +178,7 @@ public class Chunk {
 	public Coords getCoords() {
 		return coords;
 	}
-	
+
 	public boolean shouldShowHeightMap() {
 		return showHeightMap;
 	}

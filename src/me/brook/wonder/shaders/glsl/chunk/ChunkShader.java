@@ -1,7 +1,9 @@
 package me.brook.wonder.shaders.glsl.chunk;
 
 import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector2f;
 
+import me.brook.wonder.chunk.Coords;
 import me.brook.wonder.entities.light.Light;
 import me.brook.wonder.shaders.ShaderProgram;
 
@@ -10,6 +12,8 @@ public class ChunkShader extends ShaderProgram {
 	private int transformationMatrix;
 	private int projectionMatrix;
 	private int viewMatrix;
+	
+	private int coords;
 
 	// light data
 	private int lightPosition;
@@ -41,6 +45,11 @@ public class ChunkShader extends ShaderProgram {
 		
 		backgroundTexture = this.getUniformLocation("backgroundTexture");
 		showHeightMap = this.getUniformLocation("showHeightMap");
+		coords = this.getUniformLocation("coords");
+	}
+	
+	public void loadCoords(Coords coords) {
+		super.loadVector(this.coords, new Vector2f(coords.getX(), coords.getZ()));
 	}
 	
 	public void setShowHeightMap(boolean boo) {

@@ -1,6 +1,6 @@
 #version 400 core
 
-in vec3 vertexPos;
+in vec4 worldPosition;
 in vec2 pass_textureCoordinates;
 in vec3 surfaceNormal;
 in vec3 toCameraVector;
@@ -8,6 +8,7 @@ in vec3 toLightVector;
 
 out vec4 out_Color;
 
+uniform vec2 coords;
 uniform sampler2D background;
 uniform float showHeightMap;
 
@@ -26,9 +27,9 @@ void main(void){
  	vec4 textureColor = texture(background, tiledCoords);
  	
 	if(showHeightMap == 1) {
-	 	out_Color = vec4(vec3(vertexPos.y / 16), 1.0);
+		out_Color = vec4(vec3(worldPosition.y / 32), 1);
 	 }
 	 else {
-		out_Color = textureColor * vec4(vec3(brightness), 1);
+		out_Color = vec4(0.2,0.2,1,1) * vec4(vec3(brightness), 1);
 	}
 }

@@ -4,7 +4,7 @@ in vec3 position;
 in vec2 textureCoordinates;
 in vec3 normal;
 
-out vec3 vertexPos;
+out vec4 worldPosition;
 out vec2 pass_textureCoordinates;
 out vec3 surfaceNormal;
 out vec3 toCameraVector;
@@ -19,8 +19,7 @@ uniform vec3 lightPosition;			// location of the light source (only one source o
 uniform float lightRelative;
 
 void main(void) {
-	vertexPos = position;
-	vec4 worldPosition = transformationMatrix * vec4(position,1.0); // position is the position of the current vertex
+	worldPosition = transformationMatrix * vec4(position,1.0); // position is the position of the current vertex
 	
 	gl_Position = projectionMatrix * viewMatrix * worldPosition;  	// NOTE: viewMatrix must go in between the projectionMatrix and transformationMatrix
 	surfaceNormal = (transformationMatrix * vec4(normal, 0.0)).xyz; //(swizzle it) convert from vec4 back to vec3

@@ -1,14 +1,15 @@
 package me.brook.wonder.managers;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import me.brook.wonder.GameEngine;
+import me.brook.wonder.Info;
 import me.brook.wonder.chunk.Chunk;
 import me.brook.wonder.chunk.ChunkLoader;
 import me.brook.wonder.chunk.Coords;
+import me.brook.wonder.chunk.procedural.NoiseGenerator;
+import me.brook.wonder.chunk.procedural.SimplexNoise;
 
 public class TerrainManager extends Manager {
 
@@ -17,24 +18,28 @@ public class TerrainManager extends Manager {
 	// contains chunks stored in memory, but not to be rendered
 	private Map<Coords, Chunk> unloaded;
 	// Chunks to add to loaded next update
-	private List<Chunk> scheduledAdditions;
+	private Map<Coords, Chunk> scheduledAdditions;
 
 	// Seed to create perlin maps
-	private long seed = 12345;
+	private NoiseGenerator heightGen;
 
 	private ChunkLoader loader;
 
 	public TerrainManager(GameEngine engine) {
 		super(engine);
+		heightGen = new SimplexNoise(Info.SEED, 5, 0.1f, 1.0f, 0.5f, 1.0f, 2.5f);
 		loaded = new HashMap<Coords, Chunk>();
 		unloaded = new HashMap<Coords, Chunk>();
-		scheduledAdditions = new ArrayList<Chunk>();
+		scheduledAdditions = new HashMap<Coords, Chunk>();
 
 		loader = new ChunkLoader(engine, this);
+		loader.update();
 	}
 
-	public void update() {
+	int i = 0;
 
+	public void update() {
+		i++;
 		loader.update();
 	}
 
@@ -52,10 +57,29 @@ public class TerrainManager extends Manager {
 	}
 
 	public long getSeed() {
-		return seed;
+		return Info.SEED;
+	}
+
+	public boolean isChunkGenerated(Coords coords) {
+		Chunk c = loaded.get(coords);
+
+		if(c == null) {
+
+			c = unloaded.get(coords);
+
+			if(c == null) {
+				c = scheduledAdditions.get(coords);
+			}
+		}
+
+		return c != null && c.getRawModel() != null;
 	}
 
 	public void load(Chunk chunk) {
+		if(chunk.getRawModel() == null) {
+			chunk.loadToVao();
+		}
+
 		loaded.put(chunk.getCoords(), chunk);
 		unloaded.remove(chunk.getCoords());
 	}
@@ -66,11 +90,30 @@ public class TerrainManager extends Manager {
 	}
 
 	public void scheduleChunkToAdd(Chunk chunk) {
-		scheduledAdditions.add(chunk);
+		scheduledAdditions.put(chunk.getCoords(), chunk);
 	}
-	
-	public List<Chunk> getScheduledAdditions() {
+
+	public Map<Coords, Chunk> getScheduledAdditions() {
 		return scheduledAdditions;
+	}
+
+	public NoiseGenerator getHeightGen() {
+		return heightGen;
+	}
+
+	@Override
+	public void cleanUp() {
+		loader.setThreadRunning(false);
+	}
+
+	public float getHeightAt(int x, int z) {
+		Chunk c = loaded.get(new Coords(x, z));
+
+		if(c != null) {
+			return c.calculateHeight(x, z);
+		}
+
+		return 0;
 	}
 
 }

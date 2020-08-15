@@ -6,6 +6,9 @@ import java.util.UUID;
 
 import me.brook.wonder.GameEngine;
 import me.brook.wonder.entities.Entity;
+import me.brook.wonder.entities.Location;
+import me.brook.wonder.models.ModelTexture;
+import me.brook.wonder.models.TexturedModel;
 
 public class EntityManager extends Manager {
 
@@ -14,16 +17,6 @@ public class EntityManager extends Manager {
 	public EntityManager(GameEngine engine) {
 		super(engine);
 		entities = new HashMap<UUID, Entity>();
-
-		// addEntity(
-		// new Entity(
-		// new TexturedModel(
-		// engine.getLoader().loadToVAO(
-		// new float[] { -0.5f, 0.5f, 0, -0.5f, -0.5f, 0, 0.5f, -0.5f, 0, 0.5f, 0.5f, 0f
-		// },
-		// new float[] { 0, 0, 0, 1, 1, 1, 1, 0 }, new int[] { 0, 1, 3, 3, 1, 2 }),
-		// new ModelTexture(engine.getLoader().loadTexture("res/uwu.png"))),
-		// new Location(0, 0, -2)));
 
 	}
 
@@ -40,8 +33,21 @@ public class EntityManager extends Manager {
 		return entities;
 	}
 
+	boolean first = true;
+
 	public void update() {
+
+		if(first) {
+			first = false;
+
+			addEntity(new Entity(engine,
+					new TexturedModel(engine.getLoader().loadObjModel("bunny"),
+							new ModelTexture(engine.getLoader().loadTexture("res\\uwu.png"))),
+					new Location(0, engine.getManagers().getTerrainManager().getHeightAt(0, 0), 0)));
+		}
+
 		entities.values().forEach(ent -> {
+			ent.rotate(0, 0, 0);
 		});
 
 	}

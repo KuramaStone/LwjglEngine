@@ -35,6 +35,15 @@ public class Loader {
 		textures = new ArrayList<Integer>();
 	}
 
+	public RawModel loadToVAO(float[] positions, int dimensions) {
+		int vaoID = createVAO();
+		GL30.glBindVertexArray(vaoID);
+		storeDataInAttributeList(0, positions, dimensions);
+		unbindVAO();
+
+		return new RawModel(vaoID, positions.length / dimensions);
+	}
+
 	public RawModel loadObjModel(String fileName) {
 		FileReader fr = null;
 		try {
@@ -163,6 +172,7 @@ public class Loader {
 
 	public RawModel loadToVAO(float[] positions, float[] textureCoords, float[] normals, int[] indices) {
 		int vaoID = createVAO();
+		GL30.glBindVertexArray(vaoID);
 		storeDataInAttributeList(0, positions, 3);
 		storeDataInAttributeList(1, textureCoords, 2);
 		storeDataInAttributeList(2, normals, 3);
@@ -175,7 +185,6 @@ public class Loader {
 	private int createVAO() {
 		int vaoID = GL30.glGenVertexArrays();
 		vaos.add(vaoID);
-		GL30.glBindVertexArray(vaoID);
 
 		return vaoID;
 	}

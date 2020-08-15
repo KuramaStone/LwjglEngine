@@ -1,7 +1,5 @@
 package me.brook.wonder.managers;
 
-import java.awt.geom.AffineTransform;
-import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -13,6 +11,7 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
+import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.opengl.ContextAttribs;
 import org.lwjgl.opengl.Display;
@@ -70,13 +69,14 @@ public class DisplayManager extends Manager {
 			sum += d;
 		}
 		averageFPS = (int) (sum / 1000);
+		// System.out.println(averageFPS);
 		delta = (float) (DELTA_FPS / fps);
 		lastUpdate = System.nanoTime();
 	}
 
 	public void screenshot() {
 
-		SimpleDateFormat sdf = new SimpleDateFormat("MM-dd-yyyy+hh-mm-ss");
+		SimpleDateFormat sdf = new SimpleDateFormat("MM-dd-yyyy+HH-mm-ss");
 		String name = sdf.format(new Date(System.currentTimeMillis()));
 
 		File file = new File("screenshots\\" + name + ".png");
@@ -103,38 +103,26 @@ public class DisplayManager extends Manager {
 	}
 
 	public BufferedImage getScreen() {
-		int width = Display.getWidth();
-		int height = Display.getHeight();
+		GL11.glReadBuffer(GL11.GL_FRONT);
+		int width = Display.getDisplayMode().getWidth();
+		int height = Display.getDisplayMode().getHeight();
+		int bpp = 4; // Assuming a 32-bit display with a byte each for red, green, blue, and alpha.
+		ByteBuffer buffer = BufferUtils.createByteBuffer(width * height * bpp);
+		GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
 
-		// Creating an rbg array of total pixels
-		int[] pixels = new int[width * height];
-		int bindex;
-		// allocate space for RBG pixels
-		ByteBuffer fb = ByteBuffer.allocateDirect(width * height * 3);
+		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
-		// grab a copy of the current frame contents as RGB
-		GL11.glReadPixels(0, 0, width, height, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, fb);
-
-		BufferedImage imageIn = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-		// convert RGB data in ByteBuffer to integer array
-		for(int i = 0; i < pixels.length; i++) {
-			bindex = i * 3;
-			pixels[i] = ((fb.get(bindex) << 16)) +
-					((fb.get(bindex + 1) << 8)) +
-					((fb.get(bindex + 2) << 0));
+		for(int x = 0; x < width; x++) {
+			for(int y = 0; y < height; y++) {
+				int i = (x + (width * y)) * bpp;
+				int r = buffer.get(i) & 0xFF;
+				int g = buffer.get(i + 1) & 0xFF;
+				int b = buffer.get(i + 2) & 0xFF;
+				image.setRGB(x, height - (y + 1), (0xFF << 24) | (r << 16) | (g << 8) | b);
+			}
 		}
-		// Allocate colored pixel to buffered Image
-		imageIn.setRGB(0, 0, width, height, pixels, 0, width);
 
-		// Creating the transformation direction (horizontal)
-		AffineTransform at = AffineTransform.getScaleInstance(1, -1);
-		at.translate(0, -imageIn.getHeight(null));
-
-		// Applying transformation
-		AffineTransformOp opRotated = new AffineTransformOp(at, AffineTransformOp.TYPE_BILINEAR);
-		BufferedImage imageOut = opRotated.filter(imageIn, null);
-
-		return imageOut;
+		return image;
 	}
 
 	public void close() {

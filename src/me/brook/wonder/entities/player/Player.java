@@ -13,7 +13,7 @@ public class Player extends Entity {
 
 	private final Camera camera;
 
-	private float walkSpeed = 0.1f, rotateSpeed = 2.5f;
+	private float walkSpeed = 0.5f, rotateSpeed = 2.5f;
 	private float currentSpeed;
 	private float sprintMultiplier = 10.0f;
 	private boolean isSprinting = false;
