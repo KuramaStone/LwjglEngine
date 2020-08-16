@@ -6,7 +6,7 @@ import java.util.UUID;
 
 import me.brook.wonder.GameEngine;
 import me.brook.wonder.entities.Entity;
-import me.brook.wonder.entities.Location;
+import me.brook.wonder.entities.location.Location;
 import me.brook.wonder.models.ModelTexture;
 import me.brook.wonder.models.TexturedModel;
 

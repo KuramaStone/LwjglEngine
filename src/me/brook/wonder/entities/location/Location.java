@@ -1,4 +1,4 @@
-package me.brook.wonder.entities;
+package me.brook.wonder.entities.location;
 
 import org.lwjgl.util.vector.Vector3f;
 
@@ -24,6 +24,32 @@ public class Location {
 	public Location(Vector3f position, Vector3f rotation) {
 		this.position = position;
 		this.rotation = rotation;
+
+		clampRotation();
+	}
+
+	public void clampRotation() {
+		rotation.x += 180;
+		rotation.y += 180;
+		rotation.z += 180;
+		
+		rotation.x %= 360;
+		rotation.y %= 360;
+		rotation.z %= 360;
+
+		while(rotation.x < 0) {
+			rotation.x += 360;
+		}
+		while(rotation.y < 0) {
+			rotation.y += 360;
+		}
+		while(rotation.z < 0) {
+			rotation.z += 360;
+		}
+
+		rotation.x -= 180;
+		rotation.y -= 180;
+		rotation.z -= 180;
 	}
 
 	public void move(float x, float y, float z) {
@@ -36,6 +62,7 @@ public class Location {
 		rotation.x += x;
 		rotation.y += y;
 		rotation.z += z;
+		clampRotation();
 	}
 
 	public float getX() {
@@ -60,6 +87,7 @@ public class Location {
 
 	public void setYaw(float yaw) {
 		this.rotation.setX(yaw);
+		clampRotation();
 	}
 
 	public float getPitch() {
@@ -68,10 +96,16 @@ public class Location {
 
 	public void setPitch(float pitch) {
 		this.rotation.setY(pitch);
+		clampRotation();
 	}
 
 	public float getRoll() {
 		return rotation.getZ();
+	}
+	
+	public void setRoll(float roll) {
+		this.rotation.setZ(roll);
+		clampRotation();
 	}
 
 	public Vector3f getRotation() {
@@ -84,7 +118,8 @@ public class Location {
 
 	@Override
 	public String toString() {
-		return String.format("%sf, %sf, %sf, %sf, %sf, %sf", position.getX(), position.getY(), position.getZ(), rotation.getX(),
+		return String.format("%sf, %sf, %sf, %sf, %sf, %sf", position.getX(), position.getY(), position.getZ(),
+				rotation.getX(),
 				rotation.getY(), rotation.getZ());
 	}
 

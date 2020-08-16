@@ -6,8 +6,8 @@ import java.util.List;
 import org.lwjgl.util.vector.Vector3f;
 
 import me.brook.wonder.GameEngine;
-import me.brook.wonder.entities.Location;
 import me.brook.wonder.entities.light.Light;
+import me.brook.wonder.entities.location.Location;
 
 public class LightManager extends Manager {
 

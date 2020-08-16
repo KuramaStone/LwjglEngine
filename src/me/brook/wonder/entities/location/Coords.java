@@ -1,5 +1,5 @@
 
-package me.brook.wonder.chunk;
+package me.brook.wonder.entities.location;
 
 public class Coords   {
 
@@ -27,6 +27,11 @@ public class Coords   {
 	}
 
 	@Override
+	public String toString() {
+		return "Coords[x=" + x + ", z=" + z + "]";
+	}
+
+	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
@@ -49,6 +54,10 @@ public class Coords   {
 		if(z != other.z)
 			return false;
 		return true;
+	}
+
+	public Coords add(Coords coords) {
+		return new Coords(this.x + coords.x, this.z + coords.z);
 	}
 	
 	

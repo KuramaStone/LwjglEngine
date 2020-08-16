@@ -9,7 +9,7 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
 import me.brook.wonder.GameEngine;
-import me.brook.wonder.entities.Location;
+import me.brook.wonder.entities.location.Location;
 import me.brook.wonder.models.RawModel;
 import me.brook.wonder.renderer.RendererAbstract;
 import me.brook.wonder.shaders.glsl.skybox.SkyboxShader;

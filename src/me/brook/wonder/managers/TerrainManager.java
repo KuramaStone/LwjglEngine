@@ -7,9 +7,9 @@ import me.brook.wonder.GameEngine;
 import me.brook.wonder.Info;
 import me.brook.wonder.chunk.Chunk;
 import me.brook.wonder.chunk.ChunkLoader;
-import me.brook.wonder.chunk.Coords;
 import me.brook.wonder.chunk.procedural.NoiseGenerator;
-import me.brook.wonder.chunk.procedural.SimplexNoise;
+import me.brook.wonder.chunk.procedural.PerlinNoise;
+import me.brook.wonder.entities.location.Coords;
 
 public class TerrainManager extends Manager {
 
@@ -27,7 +27,7 @@ public class TerrainManager extends Manager {
 
 	public TerrainManager(GameEngine engine) {
 		super(engine);
-		heightGen = new SimplexNoise(Info.SEED, 5, 0.1f, 1.0f, 0.5f, 1.0f, 2.5f);
+		heightGen = new PerlinNoise(Info.SEED, 3, 1f, 0.5f, 2.0f, 0.01f);
 		loaded = new HashMap<Coords, Chunk>();
 		unloaded = new HashMap<Coords, Chunk>();
 		scheduledAdditions = new HashMap<Coords, Chunk>();
@@ -60,7 +60,7 @@ public class TerrainManager extends Manager {
 		return Info.SEED;
 	}
 
-	public boolean isChunkGenerated(Coords coords) {
+	public boolean isChunkPrepared(Coords coords) {
 		Chunk c = loaded.get(coords);
 
 		if(c == null) {
@@ -75,7 +75,8 @@ public class TerrainManager extends Manager {
 		return c != null && c.getRawModel() != null;
 	}
 
-	public void load(Chunk chunk) {
+	// Loads chunk to be rendered. Only to be used for prepared chunks
+	public void loadPreparedChunk(Chunk chunk) {
 		if(chunk.getRawModel() == null) {
 			chunk.loadToVao();
 		}
@@ -84,6 +85,7 @@ public class TerrainManager extends Manager {
 		unloaded.remove(chunk.getCoords());
 	}
 
+	// Move loaded chunk to unloaded cache
 	public void unload(Chunk chunk) {
 		loaded.remove(chunk.getCoords());
 		unloaded.put(chunk.getCoords(), chunk);
@@ -103,7 +105,7 @@ public class TerrainManager extends Manager {
 
 	@Override
 	public void cleanUp() {
-		loader.setThreadRunning(false);
+		loader.stop();
 	}
 
 	public float getHeightAt(int x, int z) {

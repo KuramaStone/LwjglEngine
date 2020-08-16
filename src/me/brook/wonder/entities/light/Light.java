@@ -3,7 +3,7 @@ package me.brook.wonder.entities.light;
 import org.lwjgl.util.vector.Vector3f;
 
 import me.brook.wonder.entities.Entity;
-import me.brook.wonder.entities.Location;
+import me.brook.wonder.entities.location.Location;
 
 public class Light {
 

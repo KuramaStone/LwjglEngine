@@ -9,7 +9,7 @@ public class Camera {
 	private float NEAR_PLANE = 0.01f;
 	private float FAR_PLANE = 1000000f;
 
-	private int chunkRange = 2;
+	private int chunkRange = 7;
 
 	private Matrix4f projectionMatrix;
 

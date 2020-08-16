@@ -1,357 +1,213 @@
 package me.brook.wonder.chunk;
 
-import java.awt.Point;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import me.brook.wonder.GameEngine;
+import me.brook.wonder.entities.location.Coords;
+import me.brook.wonder.entities.location.Direction;
 import me.brook.wonder.managers.TerrainManager;
 
 public class ChunkLoader {
 
-	// constructor stuff
 	private GameEngine engine;
 	private TerrainManager manager;
 
-	// Information
-	public List<Point> loadingThreadList;
-	private boolean addingPointsToThread = false;
 	private Thread thread;
-	private boolean isThreadRunning = true;
+	public List<Coords> loadingList;
+	private AtomicBoolean addingPointsToThread = new AtomicBoolean(false);
+	private int chunksToPreparePerSecond = 3;
 
-	private int extendedTrimmingRange = 2;
-	private int chunksPerSecond = 12;
+	private Map<Direction, Coords[]> spiral;
 
 	public ChunkLoader(GameEngine engine, TerrainManager manager) {
 		this.engine = engine;
 		this.manager = manager;
 
-		loadingThreadList = new ArrayList<>();
+		loadSpiral();
+		loadingList = new ArrayList<>();
+
 		startThread();
 	}
 
-	private long lastChunkLoad;
+	public void update() {
+		trimOutOfBoundsChunks();
+
+		loadChunksAround(engine.getPlayer().getCoords(), Direction.getByRotation(engine.getPlayer().getLocation().getRotation()));
+		loadScheduledChunks();
+	}
 
 	private void startThread() {
 		thread = new Thread(new Runnable() {
 
 			@Override
 			public void run() {
-				while(isThreadRunning) {
-					try {
 
-						List<Point> list = new ArrayList<Point>(loadingThreadList);
-						if(!list.isEmpty() && lastChunkLoad + (1000 / chunksPerSecond) < System.currentTimeMillis()) {
-							Point p = list.get(0);
+				long lastLoad = 0;
+				while(true) {
+					long millis = 1000 / chunksToPreparePerSecond;
 
-							// If the point has turned null
-							if(p == null) {
-								loadingThreadList.remove(p);
+					List<Coords> list = new ArrayList<Coords>(loadingList);
+					while(!list.isEmpty()) {
+						if(millis + lastLoad <= System.currentTimeMillis()) {
+							Coords coords = list.get(0);
+
+							if(shouldChunkBeGenerated(coords) && !isChunkPrepared(coords)) {
+								// generate chunk mesh
+								Chunk chunk = generateChunk(coords);
+								// add chunk to list to be added to LWJGL inside of the main thread
+								addChunkToSchedule(chunk);
 							}
-							// If the point is outside the bounds
-							else if(isChunkOOBs(p.x, p.y)) {
-								loadingThreadList.remove(p);
-							}
-							else {
-								if(loadChunk(p.x, p.y)) {
-									loadingThreadList.remove(p);
-								}
+							list.remove(coords);
 
-							}
-
-							lastChunkLoad = System.currentTimeMillis();
-
+							lastLoad = System.currentTimeMillis();
 						}
 					}
-					catch(Exception e) {
-						e.printStackTrace();
-					}
+
 				}
+
 			}
 		});
 		thread.start();
 	}
 
-	boolean boo = false;
-
-	public void update() {
-		// load chunks in the direction the player is facing first.
-		int direction = getDirection();
-		if(manager.getLoadedChunks().size() == 0) {
-			direction = -1;
-		}
-
-		// unload chunks not in range
-		trimChunks();
-
-		// If the current number of chunks isn't at a max AND others aren't loading,
-		// then load more.
-		if(!areMaximumChunksLoaded()) {
-			loadChunksAt(engine.getPlayer().getLocation().getChunkX(),
-					engine.getPlayer().getLocation().getChunkZ(),
-					direction);
-		}
-
-		if(!manager.getScheduledAdditions().isEmpty()) {
-			new ArrayList<>(manager.getScheduledAdditions().values()).forEach(c -> manager.load(c));
-			manager.getScheduledAdditions().clear();
-		}
+	protected void addChunkToSchedule(Chunk chunk) {
+		manager.scheduleChunkToAdd(chunk);
 	}
 
-	private int getDirection() {
-		float yaw = engine.getPlayer().getLocation().getYaw();
+	/*
+	 * Generates chunk meshes
+	 */
+	protected Chunk generateChunk(Coords coords) {
+		Chunk chunk = new Chunk(engine, manager.getHeightGen(), coords);
+		chunk.generateModel();
 
-		if(yaw <= 45 && yaw >= 315) {
-			return 0;
-		}
-		else if(yaw <= 225 && yaw > 135) {
-			return 1;
-		}
-		else if(yaw < 135) {
-			return 2;
-		}
-		else {
-			return 3;
-		}
+		return chunk;
 	}
 
-	public void loadChunksAt(int centerX, int centerY, int mode) {
-		// System.out.println(centerX + " " + centerY);
+	// Removes chunks outside of range plus a buffer
+	private void trimOutOfBoundsChunks() {
 
-		addingPointsToThread = true;
-
-		// Remove loadingPoints that are now outside the bounds
-		removeOOBChunksFromThread();
-
-		// Add chunks to load to the list in a spiral pattern from the center.
-		int total = (int) Math.pow(engine.getPlayer().getCamera().getChunkRange() * 2 + 1, 2);
-
-		// Shift slightly to the appearance of the apparent center to look like the
-		// center.
-
-		int x = 0, y = 0;
-
-		int dx = 0, dy = -1;
-		int temp;
-
-		if(mode == -1) {
-			for(int i = 0; i < total; i++) {
-				addChunkToThread(x + centerX, y + centerY);
-
-				if(x == y || (x < 0 && x == -y) || (x > 0 && x == 1 - y)) {
-					temp = dx;
-					dx = -dy;
-					dy = temp;
-				}
-				x += dx;
-				y += dy;
-			}
-		}
-		else if(mode == 0) { // Top to bottom loading
-			for(int y1 = -engine.getPlayer().getCamera().getChunkRange(); y1 < engine.getPlayer().getCamera().getChunkRange()
-					+ 1; y1++) {
-				for(int x1 = -engine.getPlayer().getCamera().getChunkRange(); x1 < engine.getPlayer().getCamera()
-						.getChunkRange() + 1; x1++) {
-					if(isChunkLoaded(x1 + centerX, y1 + centerY) == null) {
-						addChunkToThread(x1 + centerX, y1 + centerY);
-					}
-				}
-			}
-		}
-		else if(mode == 1) { // Right to left loading
-			for(int x1 = engine.getPlayer().getCamera().getChunkRange(); x1 > -engine.getPlayer().getCamera().getChunkRange()
-					- 1; x1--) {
-				for(int y1 = -engine.getPlayer().getCamera().getChunkRange(); y1 < engine.getPlayer().getCamera()
-						.getChunkRange() + 1; y1++) {
-					addChunkToThread(x1 + centerX, y1 + centerY);
-				}
-			}
-		}
-		else if(mode == 2) { // Bottom to top loading
-			for(int y1 = engine.getPlayer().getCamera().getChunkRange(); y1 > -engine.getPlayer().getCamera().getChunkRange()
-					- 1; y1--) {
-				for(int x1 = -engine.getPlayer().getCamera().getChunkRange(); x1 < engine.getPlayer().getCamera()
-						.getChunkRange() + 1; x1++) {
-					addChunkToThread(x1 + centerX, y1 + centerY);
-				}
-			}
-		}
-		else if(mode == 3) { // Left to right loading
-			for(int x1 = -engine.getPlayer().getCamera().getChunkRange(); x1 < engine.getPlayer().getCamera().getChunkRange()
-					+ 1; x1++) {
-				for(int y1 = -engine.getPlayer().getCamera().getChunkRange(); y1 < engine.getPlayer().getCamera()
-						.getChunkRange() + 1; y1++) {
-					addChunkToThread(x1 + centerX, y1 + centerY);
-				}
+		for(Coords coords : new ArrayList<>(manager.getLoadedChunks().keySet())) {
+			if(isChunkOutOfBounds(coords, getChunkRange() + 3)) {
+				manager.unload(manager.getLoadedChunks().get(coords));
 			}
 		}
 
-		addingPointsToThread = false;
 	}
 
-	private void removeOOBChunksFromThread() {
+	private void loadScheduledChunks() {
+		new ArrayList<>(manager.getScheduledAdditions().values()).forEach(chunk -> {
+			manager.loadPreparedChunk(chunk);
+		});
+		manager.getScheduledAdditions().clear();
+	}
 
-		for(int i = 0; i < loadingThreadList.size(); i++) {
-			Point p = loadingThreadList.get(i);
+	public void loadChunksAround(Coords coords, Direction direction) {
+		addingPointsToThread.set(true);
 
-			if(p != null) {
-				if(isChunkOOBs(p.x, p.y)) {
-					loadingThreadList.remove(p);
-					i--;
-				}
+		// load chunks in pattern.
+		for(Coords original : spiral.get(direction)) {
+			Coords p = original.add(coords);
+
+			// don't prepare chunks that are already prepared
+			if(!isChunkPrepared(p) && shouldChunkBeGenerated(p)) {
+				prepareChunk(p);
 			}
 
 		}
 
+		addingPointsToThread.set(false);
 	}
 
-	private void addChunkToThread(int x, int y) {
-
-		if(!manager.isChunkGenerated(new Coords(x, y))) {
-			Point point = new Point(x, y);
-			if(!loadingThreadList.contains(point)) {
-				loadingThreadList.add(point);
-			}
-		}
-	}
-
-	public boolean isChunkOOBs(int x, int z) {
-		int minX = engine.getPlayer().getLocation().getChunkX() - engine.getPlayer().getCamera().getChunkRange();
-		int maxX = engine.getPlayer().getLocation().getChunkX() + engine.getPlayer().getCamera().getChunkRange();
-
-		int minZ = engine.getPlayer().getLocation().getChunkZ() - engine.getPlayer().getCamera().getChunkRange();
-		int maxZ = engine.getPlayer().getLocation().getChunkZ() + engine.getPlayer().getCamera().getChunkRange();
-		// return false;
-		return x < minX || x > maxX ||
-				z < minZ || z > maxZ;
-	}
-
-	public boolean isChunkOOBs(Chunk chunk) {
-		return isChunkOOBs(chunk.getChunkX(), chunk.getChunkZ());
-	}
-
-	// If too many chunks are in memory, then save them.
-	private void unloadChunk(Chunk chunk) {
-		manager.unload(chunk);
-	}
-
-	private boolean loadChunk(int chunkX, int chunkY) {
-
-		if(manager.isChunkGenerated(new Coords(chunkX, chunkY))) {
+	/*
+	 * Check if the chunk is out of bounds
+	 */
+	private boolean shouldChunkBeGenerated(Coords coords) {
+		if(coords == null) {
 			return false;
 		}
+		return !isChunkOutOfBounds(coords, getChunkRange());
+	}
 
-		if(!addingPointsToThread) {
-			// Try to get chunk from unloaded list
-			Chunk chunk = isChunkUnloaded(chunkX, chunkY);
+	public boolean isChunkOutOfBounds(Coords coords, int range) {
+		Coords player = engine.getPlayer().getCoords();
 
-			if(chunk == null) {
-				chunk = new Chunk(engine, manager.getHeightGen(), chunkX, chunkY);
+		int minX = player.getX() - range, maxX = player.getX() + range;
+		int minZ = player.getZ() - range, maxZ = player.getZ() + range;
+		return coords.getX() < minX || coords.getX() > maxX ||
+				coords.getZ() < minZ || coords.getZ() > maxZ;
+	}
+
+	/*
+	 * Adds coords to loading thread to generate the model information outside of
+	 * the LWJGL thread.
+	 */
+	private void prepareChunk(Coords coords) {
+		loadingList.add(coords);
+	}
+
+	/*
+	 * Returns true if chunk exists in location, and if it has a generated its model
+	 */
+	private boolean isChunkPrepared(Coords coords) {
+		return manager.isChunkPrepared(coords);
+	}
+
+	private void loadSpiral() {
+		spiral = new HashMap<>();
+		int x = 0, z = 0;
+
+		int dx = 0, dz = -1;
+		int temp;
+
+		int total = (int) Math.pow(getChunkRange() * 2 + 1, 2);
+		Coords[] list = new Coords[total];
+		for(int i = 0; i < total; i++) {
+			list[i] = new Coords(x, z);
+
+			if(x == z || (x < 0 && x == -z) || (x > 0 && x == 1 - z)) {
+				temp = dx;
+				dx = -dz;
+				dz = temp;
 			}
-			if(chunk.getEmptyModel() == null) {
-				chunk.generateModel();
-			}
-			manager.scheduleChunkToAdd(chunk);
-			// if(Info.SAVE && !hasChunkBeenSaved(chunk.getChunkX(), chunk.getChunkZ())) {
-			// saveChunk(chunk);
-			// }
-			return true;
+			x += dx;
+			z += dz;
+		}
+		spiral.put(Direction.EAST, list);
+
+		// rotate each one and then keep
+
+		spiral.put(Direction.SOUTH, list = rotateBy90(list));
+		spiral.put(Direction.WEST, list = rotateBy90(list));
+		spiral.put(Direction.NORTH, list = rotateBy90(list));
+	}
+
+	private Coords[] rotateBy90(Coords[] origin) {
+		Coords[] list = new Coords[origin.length];
+
+		for(int i = 0; i < list.length; i++) {
+			Coords c = origin[i];
+
+			int x = -c.getZ();
+			int z = c.getX();
+
+			list[i] = new Coords(x, z);
 		}
 
-		return false;
+		return list;
 	}
 
-	//
-	// private boolean hasChunkBeenSaved(int chunkX, int chunkY) {
-	// String id = getChunkName(chunkX, chunkY);
-	// return new File(fileChunks, id).exists();
-	// }
-
-	// private void saveChunk(Chunk chunk) throws IOException {
-	// String id = getChunkName(chunk);
-	// Map.saveMap(chunk.getImage(), id, fileChunks);
-	// }
-	//
-	// private String getChunkName(Chunk chunk) {
-	// return getChunkName(chunk.getChunkX(), chunk.getChunkZ());
-	// }
-	//
-	// private String getChunkName(int x, int y) {
-	// String id = String.format("%s_%s.png", x, y);
-	// return id;
-	// }
-
-	public Chunk isChunkLoaded(int i, int j) {
-		for(Chunk chunk : manager.getLoadedChunks().values()) {
-			if(chunk.getChunkX() == i && chunk.getChunkZ() == j) {
-				return chunk;
-			}
-		}
-
-		return null;
-	}
-
-	public Chunk isChunkUnloaded(int i, int j) {
-		for(Chunk chunk : manager.getUnloadedChunks().values()) {
-			if(chunk.getChunkX() == i && chunk.getChunkZ() == j) {
-				return chunk;
-			}
-		}
-
-		return null;
-	}
-
-	public boolean areMaximumChunksLoaded() {
-		int needed = (int) (manager.getLoadedChunks().size()
-				- Math.pow((engine.getPlayer().getCamera().getChunkRange() + extendedTrimmingRange) * 2 + 1, 2));
-		return needed == 0;
-	}
-
-	public void trimChunks() {
-		// Unload chunks not within range of this point
-		for(Chunk chunk : new ArrayList<>(manager.getLoadedChunks().values())) {
-			if(isChunkOOBsForTrimming(chunk)) {
-				unloadChunk(chunk);
-			}
-		}
-	}
-
-	private boolean isChunkOOBsForTrimming(int x, int z) {
-		int minX = engine.getPlayer().getLocation().getChunkX() - engine.getPlayer().getCamera().getChunkRange()
-				- extendedTrimmingRange;
-		int maxX = engine.getPlayer().getLocation().getChunkX() + engine.getPlayer().getCamera().getChunkRange()
-				+ extendedTrimmingRange;
-
-		int minZ = engine.getPlayer().getLocation().getChunkZ() - engine.getPlayer().getCamera().getChunkRange()
-				- extendedTrimmingRange;
-		int maxZ = engine.getPlayer().getLocation().getChunkZ() + engine.getPlayer().getCamera().getChunkRange()
-				+ extendedTrimmingRange;
-		// return false;
-		return x < minX || x > maxX ||
-				z < minZ || z > maxZ;
-	}
-
-	private boolean isChunkOOBsForTrimming(Chunk chunk) {
-		return isChunkOOBsForTrimming(chunk.getChunkX(), chunk.getChunkZ());
-	}
-
-	public boolean isThreadRunning() {
-		return isThreadRunning;
+	private int getChunkRange() {
+		return engine.getPlayer().getCamera().getChunkRange();
 	}
 
 	@SuppressWarnings("deprecation")
-	public void setThreadRunning(boolean isThreadRunning) {
-		this.isThreadRunning = isThreadRunning;
-
-		if(!isThreadRunning) {
-			thread.stop();
-		}
-		else {
-			if(thread != null && thread.isAlive()) {
-				thread.stop();
-			}
-			startThread();
-		}
+	public void stop() {
+		thread.stop();
 	}
 
 }

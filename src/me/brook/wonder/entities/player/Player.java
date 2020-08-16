@@ -6,7 +6,7 @@ import org.lwjgl.util.vector.Vector3f;
 
 import me.brook.wonder.GameEngine;
 import me.brook.wonder.entities.Entity;
-import me.brook.wonder.entities.Location;
+import me.brook.wonder.entities.location.Location;
 import me.brook.wonder.models.TexturedModel;
 
 public class Player extends Entity {
@@ -49,7 +49,6 @@ public class Player extends Entity {
 		rotate(rotationVelocity.x, rotationVelocity.y, rotationVelocity.z);
 		applyFrictionToRotation();
 		rotationVelocity.scale(0.4f);
-		clampRotation();
 	}
 
 	private void movePosition() {
@@ -74,23 +73,6 @@ public class Player extends Entity {
 		velocity.z = Math.min(Math.max(velocity.z, -maxSpeed), maxSpeed);
 
 		rotationVelocity = velocity;
-	}
-
-	private void clampRotation() {
-		Vector3f rot = this.getLocation().getRotation();
-		rot.x %= 360;
-		rot.y %= 360;
-		rot.z %= 360;
-
-		while(rot.x < 0) {
-			rot.x += 360;
-		}
-		while(rot.y < 0) {
-			rot.y += 360;
-		}
-		while(rot.z < 0) {
-			rot.z += 360;
-		}
 	}
 
 	public void rotateRelativeToLocation(Vector3f vector) {

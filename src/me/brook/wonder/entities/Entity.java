@@ -1,6 +1,8 @@
 package me.brook.wonder.entities;
 
 import me.brook.wonder.GameEngine;
+import me.brook.wonder.entities.location.Coords;
+import me.brook.wonder.entities.location.Location;
 import me.brook.wonder.models.TexturedModel;
 
 public class Entity {
@@ -36,6 +38,10 @@ public class Entity {
 
 	public void setModel(TexturedModel model) {
 		this.model = model;
+	}
+	
+	public Coords getCoords() {
+		return new Coords(location.getChunkX(), location.getChunkZ());
 	}
 
 	public Location getLocation() {

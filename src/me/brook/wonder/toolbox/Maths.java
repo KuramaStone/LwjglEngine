@@ -6,7 +6,7 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
-import me.brook.wonder.entities.Location;
+import me.brook.wonder.entities.location.Location;
 import me.brook.wonder.entities.player.Player;
 
 public class Maths {

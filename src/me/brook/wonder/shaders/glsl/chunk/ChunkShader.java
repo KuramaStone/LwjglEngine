@@ -3,8 +3,8 @@ package me.brook.wonder.shaders.glsl.chunk;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector2f;
 
-import me.brook.wonder.chunk.Coords;
 import me.brook.wonder.entities.light.Light;
+import me.brook.wonder.entities.location.Coords;
 import me.brook.wonder.shaders.ShaderProgram;
 
 public class ChunkShader extends ShaderProgram {

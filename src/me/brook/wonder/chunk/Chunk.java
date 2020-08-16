@@ -10,14 +10,15 @@ import org.lwjgl.util.vector.Vector3f;
 
 import me.brook.wonder.GameEngine;
 import me.brook.wonder.chunk.procedural.NoiseGenerator;
-import me.brook.wonder.entities.Location;
+import me.brook.wonder.entities.location.Coords;
+import me.brook.wonder.entities.location.Location;
 import me.brook.wonder.models.EmptyModel;
 import me.brook.wonder.models.ModelTexture;
 import me.brook.wonder.models.RawModel;
 
 public class Chunk {
 
-	public static float SIZE = 100;
+	public static float SIZE = 512;
 	private static final float DETAIL = 1f;
 	private static final int VERTEX_COUNT = (int) (SIZE * DETAIL);
 
@@ -27,19 +28,19 @@ public class Chunk {
 	private ModelTexture texture;
 	private EmptyModel emptyModel;
 
-	private boolean showHeightMap = true;
+	private boolean showHeightMap = false;
 	private NoiseGenerator heightGen;
 
 	private Location location;
 	private Coords coords;
 
-	public Chunk(GameEngine engine, NoiseGenerator heightGen, int x, int z) {
+	public Chunk(GameEngine engine, NoiseGenerator heightGen, Coords coords) {
 		this.engine = engine;
 		this.heightGen = heightGen;
+		this.coords = coords;
 
-		location = new Location(x * SIZE, 0, z * SIZE, 0, 0, 0);
+		location = new Location(coords.getX() * SIZE, 0, coords.getZ() * SIZE, 0, 0, 0);
 
-		coords = new Coords((int) (location.getX() / SIZE), (int) (location.getZ() / SIZE));
 	}
 
 	private static BufferedImage image = new BufferedImage(100 * 5 + 1, 100 * 5 + 1, BufferedImage.TYPE_INT_RGB);
@@ -65,7 +66,9 @@ public class Chunk {
 				float height = calculateHeight(x, z);
 
 				float f = getHeightAt(x, z);
-				image.setRGB((int) x + 200, (int) z + 200, new Color(f, f, f).getRGB());
+				if(x >= -200 && x < 300 && z >= -200 && z < 300) {
+					image.setRGB((int) x + 200, (int) z + 200, new Color(f, f, f).getRGB());
+				}
 
 				// create vertex position; 3d coords for 1 corner of triangle
 				vertices[vertexPointer * 3 + 0] = vz;

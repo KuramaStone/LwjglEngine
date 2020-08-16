@@ -30,6 +30,6 @@ void main(void){
 		out_Color = vec4(vec3(worldPosition.y / 32), 1);
 	 }
 	 else {
-		out_Color = vec4(0.2,0.2,1,1) * vec4(vec3(brightness), 1);
+		out_Color = textureColor * vec4(vec3(brightness), 1);
 	}
 }

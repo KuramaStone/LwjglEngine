@@ -1013,7 +1013,7 @@ public class FastNoise {
 		return SinglePerlin(m_seed, x * m_frequency, y * m_frequency);
 	}
 
-	private float SinglePerlin(int seed, float x, float y) {
+	public float SinglePerlin(int seed, float x, float y) {
 		int x0 = FastFloor(x);
 		int y0 = FastFloor(y);
 		int x1 = x0 + 1;
