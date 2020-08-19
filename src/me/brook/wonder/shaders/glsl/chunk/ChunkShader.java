@@ -12,13 +12,13 @@ public class ChunkShader extends ShaderProgram {
 	private int transformationMatrix;
 	private int projectionMatrix;
 	private int viewMatrix;
-	
+
 	private int coords;
 
 	// light data
 	private int lightPosition;
 	private int lightRelative;
-	
+
 	// texture
 	private int backgroundTexture;
 	private int showHeightMap;
@@ -42,20 +42,20 @@ public class ChunkShader extends ShaderProgram {
 
 		lightPosition = this.getUniformLocation("lightPosition");
 		lightRelative = this.getUniformLocation("lightRelative");
-		
+
 		backgroundTexture = this.getUniformLocation("backgroundTexture");
 		showHeightMap = this.getUniformLocation("showHeightMap");
 		coords = this.getUniformLocation("coords");
 	}
-	
+
 	public void loadCoords(Coords coords) {
 		super.loadVector(this.coords, new Vector2f(coords.getX(), coords.getZ()));
 	}
-	
+
 	public void setShowHeightMap(boolean boo) {
 		super.loadBoolean(showHeightMap, boo);
 	}
-	
+
 	public void loadTextures() {
 		super.loadInt(backgroundTexture, 0);
 	}

@@ -54,6 +54,8 @@ public class TerrainManager extends Manager {
 	public void remove(Chunk chunk) {
 		loaded.remove(new Coords(chunk.getChunkX(), chunk.getChunkZ()));
 		unloaded.remove(new Coords(chunk.getChunkX(), chunk.getChunkZ()));
+		
+		engine.getLoader().removeVAO(chunk.getRawModel().getVaoID());
 	}
 
 	public long getSeed() {

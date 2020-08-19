@@ -2,10 +2,10 @@ package me.brook.wonder.chunk;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
-import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
-import javax.imageio.ImageIO;
-
+import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
 import me.brook.wonder.GameEngine;
@@ -29,23 +29,26 @@ public class Chunk {
 	private EmptyModel emptyModel;
 
 	private boolean showHeightMap = false;
-	private NoiseGenerator heightGen;
+	// private NoiseGenerator heightGen;
+	private BufferedImage biomeMap;
 
 	private Location location;
 	private Coords coords;
 
+	private Map<Vector2f, Float> cache;
+
 	public Chunk(GameEngine engine, NoiseGenerator heightGen, Coords coords) {
 		this.engine = engine;
-		this.heightGen = heightGen;
+		// this.heightGen = heightGen;
 		this.coords = coords;
+		cache = new HashMap<Vector2f, Float>();
 
 		location = new Location(coords.getX() * SIZE, 0, coords.getZ() * SIZE, 0, 0, 0);
 
 	}
 
-	private static BufferedImage image = new BufferedImage(100 * 5 + 1, 100 * 5 + 1, BufferedImage.TYPE_INT_RGB);
-
 	public EmptyModel generateModel() {
+
 		int vertexes = VERTEX_COUNT + 1;
 
 		int squared = vertexes * vertexes;
@@ -55,6 +58,8 @@ public class Chunk {
 		float[] textureCoords = new float[squared * 2];
 		int[] indices = new int[6 * (vertexes - 1) * (vertexes * 1)];
 
+		biomeMap = new BufferedImage(vertexes, vertexes, BufferedImage.TYPE_INT_RGB);
+
 		int vertexPointer = 0;
 		for(int i = 0; i < vertexes; i++) {
 			for(int j = 0; j < vertexes; j++) {
@@ -63,12 +68,11 @@ public class Chunk {
 
 				float x = location.getZ() + vx;
 				float z = location.getX() + vz;
+
 				float height = calculateHeight(x, z);
 
-				float f = getHeightAt(x, z);
-				if(x >= -200 && x < 300 && z >= -200 && z < 300) {
-					image.setRGB((int) x + 200, (int) z + 200, new Color(f, f, f).getRGB());
-				}
+				Vector3f c = engine.getManagers().getBiomeManager().getBiomesAt(x, z)[0].getColor();
+				biomeMap.setRGB(i, j, new Color(c.getX(), c.getY(), c.getZ()).getRGB());
 
 				// create vertex position; 3d coords for 1 corner of triangle
 				vertices[vertexPointer * 3 + 0] = vz;
@@ -84,13 +88,6 @@ public class Chunk {
 				textureCoords[vertexPointer * 2 + 1] = vz;
 				vertexPointer++;
 			}
-		}
-
-		try {
-			ImageIO.write(image, "png", new File("res\\chunks\\rendered.png"));
-		}
-		catch(Exception e) {
-			e.printStackTrace();
 		}
 
 		int pointer = 0;
@@ -109,7 +106,13 @@ public class Chunk {
 			}
 		}
 
+		clearHeightCache();
+
 		return emptyModel = new EmptyModel(vertices, normals, textureCoords, indices);
+	}
+
+	private void clearHeightCache() {
+		cache.clear();
 	}
 
 	public RawModel loadToVao() {
@@ -119,14 +122,20 @@ public class Chunk {
 	}
 
 	public float calculateHeight(float x, float z) {
-		return getHeightAt(x, z) * 32;
+
+		Vector2f vec = new Vector2f(x, z);
+		if(cache.containsKey(vec)) {
+			return cache.get(vec);
+		}
+
+		float h = getHeightAt(x, z) * 16;
+		cache.put(vec, h);
+		return h;
 	}
 
 	public float getHeightAt(float x, float z) {
-		// Biome[] b = engine.getManagers().getBiomeManager().getBiomeAt(x, z);
-		//
-		// return engine.getManagers().getBiomeManager().getAverageHeightOfBiomes(b);
-		return heightGen.getHeightAt(x, z);
+		return engine.getManagers().getBiomeManager().getAverageHeightAt(x, z);
+		// return heightGen.getHeightAt(x, z);
 	}
 
 	private Vector3f calculateNormal(float x, float z) {
@@ -168,7 +177,7 @@ public class Chunk {
 	}
 
 	public void loadTexture() {
-		texture = new ModelTexture(engine.getLoader().loadTexture("res/grass.png"));
+		texture = new ModelTexture(engine.getLoader().loadTexture(biomeMap));
 	}
 
 	public ModelTexture getTexture() {

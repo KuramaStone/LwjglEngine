@@ -10,8 +10,11 @@ public class Entity {
 	protected final GameEngine engine;
 
 	private TexturedModel model;
+	private boolean hasTransparency = false;
+	
 	protected Location location;
 	protected float scale;
+	
 
 	public Entity(GameEngine engine, TexturedModel model, Location location) {
 		this(engine, model, location, 1.0f);
@@ -58,6 +61,14 @@ public class Entity {
 
 	public void setScale(float scale) {
 		this.scale = scale;
+	}
+	
+	public void setHasTransparency(boolean hasTransparency) {
+		this.hasTransparency = hasTransparency;
+	}
+	
+	public boolean hasTransparency() {
+		return hasTransparency;
 	}
 
 }

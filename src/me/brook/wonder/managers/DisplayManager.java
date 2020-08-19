@@ -61,14 +61,15 @@ public class DisplayManager extends Manager {
 
 		double fps = (1e9 / (System.nanoTime() - lastUpdate));
 		lastFPS.add(fps);
-		if(lastFPS.size() == 1000) {
+		if(lastFPS.size() == 64) {
 			lastFPS.remove(0);
 		}
 		double sum = 0;
 		for(double d : lastFPS) {
 			sum += d;
 		}
-		averageFPS = (int) (sum / 1000);
+		averageFPS = (int) (sum / 64);
+		Display.setTitle("Wonder " + averageFPS);
 		// System.out.println(averageFPS);
 		delta = (float) (DELTA_FPS / fps);
 		lastUpdate = System.nanoTime();

@@ -49,6 +49,7 @@ public class EntityRenderer extends RendererAbstract {
 	}
 
 	private void unbindEntity(Entity entity) {
+		engine.getManagers().getRendererManager().enableCulling();
 		// unbind model
 		GL30.glBindVertexArray(0);
 		GL20.glDisableVertexAttribArray(0);
@@ -57,6 +58,10 @@ public class EntityRenderer extends RendererAbstract {
 	}
 
 	private void bindEntity(Entity entity) {
+
+		if(entity.hasTransparency()) {
+			engine.getManagers().getRendererManager().disableCulling();
+		}
 		// prepare model
 		GL30.glBindVertexArray(entity.getModel().getModel().getVaoID());
 		GL20.glEnableVertexAttribArray(0); // position
@@ -69,7 +74,8 @@ public class EntityRenderer extends RendererAbstract {
 
 	private void loadShaderUniforms(Entity entity) {
 		// prepare shaders
-		Matrix4f transformation = Maths.createTransformationMatrix(entity.getLocation(), entity.getScale(), true, new Vector3f(0, 0, 0));
+		Matrix4f transformation = Maths.createTransformationMatrix(entity.getLocation(), entity.getScale(), true,
+				new Vector3f(0, 0, 0));
 		shader.loadTransformationMatrix(transformation);
 
 	}

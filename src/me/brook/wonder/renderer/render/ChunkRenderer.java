@@ -39,7 +39,7 @@ public class ChunkRenderer extends RendererAbstract {
 
 			bindChunk(chunk);
 			loadShaderUniforms(chunk);
-//			GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
+			// GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
 			GL11.glDrawElements(GL11.GL_TRIANGLES, model.getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
 
 			unbindChunk();
@@ -64,6 +64,7 @@ public class ChunkRenderer extends RendererAbstract {
 		GL20.glDisableVertexAttribArray(0);
 		GL20.glDisableVertexAttribArray(1);
 		GL20.glDisableVertexAttribArray(2);
+		GL13.glActiveTexture(0);
 	}
 
 	private void loadShaderUniforms(Chunk chunk) {

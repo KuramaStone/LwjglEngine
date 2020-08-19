@@ -21,9 +21,7 @@ public class RenderManager extends Manager {
 
 	public RenderManager(GameEngine engine) {
 		super(engine);
-		GL11.glEnable(GL11.GL_CULL_FACE);
-		GL11.glCullFace(GL11.GL_BACK);
-		GL11.glFrontFace(GL11.GL_CCW);
+		enableCulling();
 
 		renderers = new ArrayList<RendererAbstract>();
 		renderers.add(entityRenderer = new EntityRenderer(engine));
@@ -31,12 +29,22 @@ public class RenderManager extends Manager {
 		renderers.add(skyRenderer = new SkyRenderer(engine));
 	}
 
+	public void enableCulling() {
+		GL11.glEnable(GL11.GL_CULL_FACE);
+		GL11.glCullFace(GL11.GL_BACK);
+		GL11.glFrontFace(GL11.GL_CCW);
+	}
+
+	public void disableCulling() {
+		GL11.glDisable(GL11.GL_CULL_FACE);
+	}
+
 	public void render() {
 		prepare();
 
-		// Sky renderer 
+		// Sky renderer
 		skyRenderer.render();
-		
+
 		terrainRenderer.render();
 		entityRenderer.render();
 	}

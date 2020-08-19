@@ -28,10 +28,10 @@ void main(void) {
 		toLightVector = lightPosition - worldPosition.xyz;
 	}
 	else {
-		toLightVector = lightPosition;
+		toLightVector = lightPosition; 
 	}
 	
 	toCameraVector = (inverse(viewMatrix) * vec4(0.0,0.0,0.0,1.0)).xyz - worldPosition.xyz;
 	
-	pass_textureCoordinates = textureCoordinates;
+	pass_textureCoordinates = textureCoordinates;	
 }

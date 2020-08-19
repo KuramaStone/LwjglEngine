@@ -1,21 +1,48 @@
 package me.brook.wonder.renderer;
 
+import static org.lwjgl.opengl.GL11.GL_FLOAT;
+import static org.lwjgl.opengl.GL11.GL_LINEAR;
+import static org.lwjgl.opengl.GL11.GL_LINEAR_MIPMAP_LINEAR;
+import static org.lwjgl.opengl.GL11.GL_RGBA;
+import static org.lwjgl.opengl.GL11.GL_RGBA8;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_MAG_FILTER;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_MIN_FILTER;
+import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
+import static org.lwjgl.opengl.GL11.glBindTexture;
+import static org.lwjgl.opengl.GL11.glDeleteTextures;
+import static org.lwjgl.opengl.GL11.glGenTextures;
+import static org.lwjgl.opengl.GL11.glTexImage2D;
+import static org.lwjgl.opengl.GL11.glTexParameterf;
+import static org.lwjgl.opengl.GL11.glTexParameteri;
+import static org.lwjgl.opengl.GL14.GL_TEXTURE_LOD_BIAS;
+import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
+import static org.lwjgl.opengl.GL15.GL_ELEMENT_ARRAY_BUFFER;
+import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
+import static org.lwjgl.opengl.GL15.glBindBuffer;
+import static org.lwjgl.opengl.GL15.glBufferData;
+import static org.lwjgl.opengl.GL15.glDeleteBuffers;
+import static org.lwjgl.opengl.GL15.glGenBuffers;
+import static org.lwjgl.opengl.GL20.glVertexAttribPointer;
+import static org.lwjgl.opengl.GL30.glBindVertexArray;
+import static org.lwjgl.opengl.GL30.glDeleteVertexArrays;
+import static org.lwjgl.opengl.GL30.glGenVertexArrays;
+import static org.lwjgl.opengl.GL30.glGenerateMipmap;
+
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL15;
-import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL30;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.newdawn.slick.opengl.Texture;
@@ -37,7 +64,7 @@ public class Loader {
 
 	public RawModel loadToVAO(float[] positions, int dimensions) {
 		int vaoID = createVAO();
-		GL30.glBindVertexArray(vaoID);
+		glBindVertexArray(vaoID);
 		storeDataInAttributeList(0, positions, dimensions);
 		unbindVAO();
 
@@ -155,6 +182,9 @@ public class Loader {
 		Texture texture = null;
 		try {
 			texture = TextureLoader.getTexture("PNG", new FileInputStream(file));
+			glGenerateMipmap(GL_TEXTURE_2D);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.5f);
 		}
 		catch(IOException e) {
 			e.printStackTrace();
@@ -164,15 +194,46 @@ public class Loader {
 		return textureID;
 	}
 
+	public int loadTexture(BufferedImage image) {
+
+		int[] pixels = new int[image.getWidth() * image.getHeight()];
+		image.getRGB(0, 0, image.getWidth(), image.getHeight(), pixels, 0, image.getWidth());
+		ByteBuffer buffer = ByteBuffer.allocateDirect(image.getWidth() * image.getHeight() * 4);
+
+		for(int h = 0; h < image.getHeight(); h++) {
+			for(int w = 0; w < image.getWidth(); w++) {
+				int pixel = pixels[h * image.getWidth() + w];
+
+				buffer.put((byte) ((pixel >> 16) & 0xFF));
+				buffer.put((byte) ((pixel >> 8) & 0xFF));
+				buffer.put((byte) (pixel & 0xFF));
+				buffer.put((byte) ((pixel >> 24) & 0xFF));
+			}
+		}
+
+		buffer.flip();
+
+		int id = glGenTextures();
+		glBindTexture(GL_TEXTURE_2D, id);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image.getWidth(), image.getHeight(),
+				0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		return id;
+	}
+
 	public void cleanUp() {
-		vaos.forEach(id -> GL30.glDeleteVertexArrays(id));
-		vbos.forEach(id -> GL15.glDeleteBuffers(id));
-		textures.forEach(id -> GL11.glDeleteTextures(id));
+		vaos.forEach(id -> glDeleteVertexArrays(id));
+		vbos.forEach(id -> glDeleteBuffers(id));
+		textures.forEach(id -> glDeleteTextures(id));
 	}
 
 	public RawModel loadToVAO(float[] positions, float[] textureCoords, float[] normals, int[] indices) {
 		int vaoID = createVAO();
-		GL30.glBindVertexArray(vaoID);
+		glBindVertexArray(vaoID);
 		storeDataInAttributeList(0, positions, 3);
 		storeDataInAttributeList(1, textureCoords, 2);
 		storeDataInAttributeList(2, normals, 3);
@@ -183,21 +244,21 @@ public class Loader {
 	}
 
 	private int createVAO() {
-		int vaoID = GL30.glGenVertexArrays();
+		int vaoID = glGenVertexArrays();
 		vaos.add(vaoID);
 
 		return vaoID;
 	}
 
 	private void storeDataInAttributeList(int attribute, float[] data, int dimensions) {
-		int vboID = GL15.glGenBuffers();
+		int vboID = glGenBuffers();
 		vbos.add(vboID);
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vboID);
+		glBindBuffer(GL_ARRAY_BUFFER, vboID);
 
 		FloatBuffer buffer = storeDataInFloatBuffer(data);
-		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, buffer, GL15.GL_STATIC_DRAW); // static draw for never editing
-		GL20.glVertexAttribPointer(attribute, dimensions, GL11.GL_FLOAT, false, 0, 0);
-		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+		glBufferData(GL_ARRAY_BUFFER, buffer, GL_STATIC_DRAW); // static draw for never editing
+		glVertexAttribPointer(attribute, dimensions, GL_FLOAT, false, 0, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	}
 
@@ -210,16 +271,16 @@ public class Loader {
 	}
 
 	public void unbindVAO() {
-		GL30.glBindVertexArray(0);
+		glBindVertexArray(0);
 	}
 
 	private void bindIndicesBuffer(int[] indices) {
-		int vboID = GL15.glGenBuffers();
+		int vboID = glGenBuffers();
 		vbos.add(vboID);
-		GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, vboID);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboID);
 
 		IntBuffer buffer = storeDataInIntBuffer(indices);
-		GL15.glBufferData(GL15.GL_ELEMENT_ARRAY_BUFFER, buffer, GL15.GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, buffer, GL_STATIC_DRAW);
 	}
 
 	private IntBuffer storeDataInIntBuffer(int[] data) {
@@ -228,6 +289,10 @@ public class Loader {
 		buffer.flip(); // prepare for rendering
 
 		return buffer;
+	}
+
+	public void removeVAO(int vaoID) {
+		glDeleteVertexArrays(vaoID);
 	}
 
 }

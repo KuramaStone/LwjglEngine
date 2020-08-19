@@ -19,7 +19,7 @@ public class ChunkLoader {
 	private Thread thread;
 	public List<Coords> loadingList;
 	private AtomicBoolean addingPointsToThread = new AtomicBoolean(false);
-	private int chunksToPreparePerSecond = 3;
+	private int chunksToPreparePerSecond = 100;
 
 	private Map<Direction, Coords[]> spiral;
 

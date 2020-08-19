@@ -31,6 +31,8 @@ public class Player extends Entity {
 		movePosition();
 		moveRotation();
 		keyBindings();
+		
+//		System.out.println(engine.getManagers().getBiomeManager().getBiomesAt(location.getX(), location.getZ())[0].getClass().getName());
 	}
 
 	private void keyBindings() {
@@ -47,8 +49,22 @@ public class Player extends Entity {
 		Vector3f requestedRot = checkMouse();
 		addRequestedToVelocity(requestedRot); // add it to the rotation velocity for smooth turning
 		rotate(rotationVelocity.x, rotationVelocity.y, rotationVelocity.z);
+		clampRotation();
 		applyFrictionToRotation();
 		rotationVelocity.scale(0.4f);
+	}
+
+	private void clampRotation() {
+		float pitch = location.getPitch();
+
+		if(pitch < -90) {
+			pitch = -90;
+		}
+		else if(pitch > 90) {
+			pitch = 90;
+		}
+
+		location.setPitch(pitch);
 	}
 
 	private void movePosition() {

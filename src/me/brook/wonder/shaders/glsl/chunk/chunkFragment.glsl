@@ -5,6 +5,7 @@ in vec2 pass_textureCoordinates;
 in vec3 surfaceNormal;
 in vec3 toCameraVector;
 in vec3 toLightVector;
+in vec4 biomeColorVec;
 
 out vec4 out_Color;
 
