@@ -43,12 +43,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.lwjgl.BufferUtils;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
+import org.lwjgl.opengl.GL13;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.newdawn.slick.opengl.Texture;
 import org.newdawn.slick.opengl.TextureLoader;
 
+import de.matthiasmann.twl.utils.PNGDecoder;
+import de.matthiasmann.twl.utils.PNGDecoder.Format;
 import me.brook.wonder.models.RawModel;
+import me.brook.wonder.textures.TextureData;
 
 public class Loader {
 
@@ -60,6 +66,49 @@ public class Loader {
 		vaos = new ArrayList<Integer>();
 		vbos = new ArrayList<Integer>();
 		textures = new ArrayList<Integer>();
+	}
+
+	public int loadCubeMap(String[] textureFiles) {
+		int texID = GL11.glGenTextures();
+		GL13.glActiveTexture(GL13.GL_TEXTURE0);
+		GL11.glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, texID);
+
+		for(int i = 0; i < textureFiles.length; i++) {
+			TextureData data = decodeTextureFile(textureFiles[i]);
+			GL11.glTexImage2D(GL13.GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL11.GL_RGBA,
+					data.getWidth(), data.getHeight(), 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE,
+					data.getBuffer());
+		}
+		glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+		glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
+
+		glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL13.GL_TEXTURE_CUBE_MAP, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
+
+		textures.add(texID);
+		return texID;
+	}
+
+	private TextureData decodeTextureFile(String fileName) {
+		int width = 0;
+		int height = 0;
+		ByteBuffer buffer = null;
+		try {
+			FileInputStream in = new FileInputStream(fileName);
+			PNGDecoder decoder = new PNGDecoder(in);
+			width = decoder.getWidth();
+			height = decoder.getHeight();
+			buffer = ByteBuffer.allocateDirect(4 * width * height);
+			decoder.decode(buffer, width * 4, Format.RGBA);
+			buffer.flip();
+			in.close();
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+			System.err.println("Tried to load texture " + fileName + ", didn't work");
+			System.exit(-1);
+		}
+		return new TextureData(buffer, width, height);
 	}
 
 	public RawModel loadToVAO(float[] positions, int dimensions) {

@@ -22,6 +22,7 @@ public class TerrainManager extends Manager {
 
 	// Seed to create perlin maps
 	private NoiseGenerator heightGen;
+	private float worldScale = 1000.0f;
 
 	private ChunkLoader loader;
 
@@ -118,6 +119,10 @@ public class TerrainManager extends Manager {
 		}
 
 		return 0;
+	}
+	
+	public float getWorldScale() {
+		return worldScale;
 	}
 
 }

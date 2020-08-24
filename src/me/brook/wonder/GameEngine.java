@@ -63,7 +63,9 @@ public class GameEngine implements Runnable {
 	}
 
 	public static void main(String[] args) {
-		new GameEngine().run();
+		GameEngine engine = new GameEngine();
+		engine.run();
+		
 	}
 
 	public Loader getLoader() {

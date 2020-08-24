@@ -7,44 +7,49 @@ import me.brook.wonder.GameEngine;
 import me.brook.wonder.Info;
 import me.brook.wonder.biomes.Biome;
 import me.brook.wonder.biomes.DesertBiome;
+import me.brook.wonder.biomes.JungleBiome;
 import me.brook.wonder.biomes.MountainBiome;
+import me.brook.wonder.biomes.MountainPeakBiome;
+import me.brook.wonder.biomes.OceanBiome;
 import me.brook.wonder.biomes.SavannaBiome;
+import me.brook.wonder.biomes.TropicalForestBiome;
 import me.brook.wonder.chunk.procedural.PerlinNoise;
 
-public class BiomeManager {
+public class BiomeManager extends Manager {
 
 	private List<Biome> biomes;
 
 	public BiomeManager(GameEngine engine) {
+		super(engine);
 		biomes = new ArrayList<>();
 
 		// Add all the biomes
 
 		int temperature = 6500;
 
-		// biomes.add(new OceanBiome(engine, temperature, 0, 3, 1f, 0.5f, 2.0f, 0.01f,
-		// 32));
+		 biomes.add(new OceanBiome(engine, temperature, 0, 3, 1f, 0.5f, 2.0f, 0.01f,
+		 32));
 
 		temperature = 5000;
-		// biomes.add(new JungleBiome(engine, temperature, 3000, 1, 0.9f, 0.5f, 2.0f,
-		// 0.01f, 96));
+		 biomes.add(new JungleBiome(engine, temperature, 3000, 1, 0.9f, 0.5f, 2.0f,
+		 0.01f, 96));
 
 		temperature = 3000;
-		// biomes.add(new TropicalForestBiome(engine, temperature, 4750, 3, 1f, 0.5f,
-		// 2.0f, 0.01f, 96));
+		 biomes.add(new TropicalForestBiome(engine, temperature, 4750, 3, 1f, 0.5f,
+		 2.0f, 0.01f, 96));
 		biomes.add(new SavannaBiome(engine, temperature, 500, 1, 0.1f, 0.5f, 2.0f, 0.01f, 16));
 		biomes.add(new DesertBiome(engine, temperature, 0, 2, 0.33f, 0.5f, 2.0f, 0.01f, 4));
 
 		temperature = 500;
 		biomes.add(new MountainBiome(engine, temperature, 0, 4, 0.05f, 0.7f, 2.0f, 0.05f, 32));
 		temperature = 250;
-		// biomes.add(new MountainPeakBiome(engine, temperature, 0, 3, 1f, 0.5f, 2.0f,
-		// 0.01f, 148));
+		 biomes.add(new MountainPeakBiome(engine, temperature, 0, 3, 1f, 0.5f, 2.0f,
+		 0.01f, 148));
 
 		// Sort the biomes by temperature and then humidity
 
-		// new SavannaBiome(engine, temperature, 500, 1, 0.5f, 0.5f, 2.0f, 0.01f,
-		// 64).getHeightGenerator().drawImage(500, 500, "res\\biomes\\savanna.png");
+			new SavannaBiome(engine, temperature, 500, 1, 0.5f, 0.5f, 2.0f, 0.01f,
+					64).getHeightGenerator().drawImage(500, 500, "res\\biomes\\savanna.png");
 	}
 
 	public float getAverageHeightAt(float x, float z) {
@@ -64,6 +69,7 @@ public class BiomeManager {
 			f += b.calculateHeightAt(x, z);
 		}
 		f /= biomes.length;
+		f = 0;
 
 		return f;
 	}

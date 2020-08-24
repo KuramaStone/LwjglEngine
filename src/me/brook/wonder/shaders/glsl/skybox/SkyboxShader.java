@@ -12,6 +12,7 @@ public class SkyboxShader extends ShaderProgram {
 	private int viewMatrix;
 
 	private int skyColor;
+	private int nightTextures;
 
 	public SkyboxShader() {
 		super("skybox");
@@ -28,6 +29,12 @@ public class SkyboxShader extends ShaderProgram {
 		projectionMatrix = this.getUniformLocation("projectionMatrix");
 		viewMatrix = this.getUniformLocation("viewMatrix");
 		skyColor = this.getUniformLocation("skyColor");
+
+		nightTextures = this.getUniformLocation("nightTextures");
+	}
+	
+	public void loadSkyTextures() {
+		super.loadInt(nightTextures, 0);
 	}
 
 	public void loadSkyColor(Vector3f color) {

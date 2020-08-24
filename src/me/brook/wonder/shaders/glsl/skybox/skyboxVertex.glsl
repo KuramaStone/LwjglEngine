@@ -1,6 +1,7 @@
 #version 400 core
 
 in vec3 position;
+out vec3 textureCoords;
 
 out vec4 worldPosition;
 
@@ -11,6 +12,7 @@ uniform mat4 viewMatrix;			// camera's perspective
 void main(void) {
 	// multiply by player position to move everything relative to player
 	worldPosition = vec4(position, 1) * transformationMatrix;
+	textureCoords = position;
 	
 	gl_Position = projectionMatrix * viewMatrix * vec4(position,1.0);  	// NOTE: viewMatrix must go in between the projectionMatrix and transformationMatrix
 }

@@ -34,6 +34,8 @@ public class Biome {
 	}
 
 	public float calculateHeightAt(float x, float z) {
+		x *=  engine.getManagers().getTerrainManager().getWorldScale();
+		z *=  engine.getManagers().getTerrainManager().getWorldScale();
 		return noise.getHeightAt(x, z) * heightScale;
 	}
 

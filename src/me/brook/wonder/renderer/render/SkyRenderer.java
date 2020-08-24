@@ -3,6 +3,7 @@ package me.brook.wonder.renderer.render;
 import java.util.Random;
 
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.util.vector.Matrix4f;
@@ -66,7 +67,7 @@ public class SkyRenderer extends RendererAbstract {
 				new Vector3f(0, 0, 0));
 		shader.loadTransformationMatrix(transformation);
 		shader.loadSkyColor(engine.getManagers().getSkyManager().getSkyColor());
-
+		shader.loadSkyTextures();
 	}
 
 	private void unbindSkybox() {
@@ -80,6 +81,8 @@ public class SkyRenderer extends RendererAbstract {
 		// prepare model
 		GL30.glBindVertexArray(skybox.getVaoID());
 		GL20.glEnableVertexAttribArray(0); // position
+		GL13.glActiveTexture(GL13.GL_TEXTURE0);
+		GL11.glBindTexture(GL13.GL_TEXTURE_CUBE_MAP, engine.getManagers().getSkyManager().getSkyTexture());
 	}
 
 	@Override

@@ -3,9 +3,11 @@
 #define HALLEY_ITER 0
 
 in vec4 worldPosition;
+in vec3 textureCoords;
 
 out vec4 out_Color;
 
+uniform samplerCube nightTextures;
 uniform vec3 skyColor;
 
 float cbrt(float x) {
@@ -29,7 +31,7 @@ void main(void) {
 
 
 	// make a sharp transition between black and white with a slight blur in-between
-    float a = sqrt(cbrt(onSphere.y));
+    float a = cbrt(onSphere.y);
     
-    out_Color = mix(vec4(0, 0, 0, 1), vec4(skyColor, 1), a);
+    out_Color = mix(vec4(0, 0, 0, 1), texture(nightTextures, textureCoords), a);
 }
